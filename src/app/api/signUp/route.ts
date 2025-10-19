@@ -3,22 +3,16 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { supabase } from "@/lib/supabase";
 
-// Define the validation schema with Zod
 const signUpSchema = z.object({
   full_name: z.string().min(2, "Full name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  //   school_id: z.string().min(1, "School ID is required"),
-  //   allowance: z.number().min(0, "Allowance must be a positive number").optional().default(0),
-  //   savings_goal: z.number().min(0, "Savings goal must be a positive number").optional().default(0),
 });
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse the request body
     const body = await request.json();
 
-    // Validate the input using Zod
     const validationResult = signUpSchema.safeParse(body);
 
     if (!validationResult.success) {

@@ -1,20 +1,20 @@
-import { LoginForm } from "@/components/login/LoginForm";
+import { SignUpForm } from "@/components/signup/SignUpForm";
 import GoogleButton from "@/components/GoogleButton";
 import Link from "next/link";
 
-export default function LoginPage() {
+export default function SignUpPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50 px-4 py-12">
       <div className="w-full max-w-md">
         {/* Card Container */}
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome Back
+              Create Account
             </h1>
             <p className="text-gray-600">
-              Sign in to continue to your account
+              Sign up to get started with your account
             </p>
           </div>
 
@@ -30,23 +30,23 @@ export default function LoginPage() {
             </div>
             <div className="relative flex justify-center text-sm">
               <span className="px-4 bg-white text-gray-500">
-                Or continue with email
+                Or sign up with email
               </span>
             </div>
           </div>
 
-          {/* Login Form */}
-          <LoginForm />
+          {/* Sign Up Form */}
+          <SignUpForm />
 
-          {/* Sign Up Link */}
+          {/* Login Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
+              Already have an account?{" "}
               <Link
-                href="/signup"
+                href="/login"
                 className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
               >
-                Sign up
+                Sign in
               </Link>
             </p>
           </div>
@@ -54,7 +54,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-8">
-          By signing in, you agree to our{" "}
+          By signing up, you agree to our{" "}
           <a href="#" className="underline hover:text-gray-700">
             Terms
           </a>{" "}
