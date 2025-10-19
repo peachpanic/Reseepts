@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     // Get expenses from User
     const { data: expenses, error } = await supabase
-      .from("expenses")
+      .from("transactions")
       .select("*")
       .eq("user_id", id);
 
