@@ -5,7 +5,7 @@ export async function GET(req: NextRequest) {
     try {
         const searchParams = req.nextUrl.searchParams;
         const userId = searchParams.get("id");
-        const limit = parseInt(searchParams.get("limit") || "5", 10);
+        const limit = parseInt(searchParams.get("limit") || "10", 10);
         const period = searchParams.get("period");
 
         console.log("Fetching top expenses for user: ", userId);
@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
                 )
             `)
             .eq("user_id", userId)
+            .gte("expense_date", startDate.toISOString())
             .order("amount", { ascending: false })
             .limit(limit)
 
