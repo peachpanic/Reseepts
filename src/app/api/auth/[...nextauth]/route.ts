@@ -1,6 +1,9 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { google } from "googleapis";
+import { supabase } from "@/lib/supabase";
 
 async function refreshAccessToken(token: any) {
   try {
@@ -34,6 +37,8 @@ async function refreshAccessToken(token: any) {
   }
 }
 
+// TODO: add email & pass sign-in provider
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -54,6 +59,51 @@ export const authOptions: NextAuthOptions = {
         },
       },
     }),
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email", placeholder: "your@email.com" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password are required");
+        }
+
+        try {
+          const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("email, password_hash")
+            .single();
+
+          if (userError) {
+            throw new Error(userError.message);
+          }
+          if (!userData) {
+            throw new Error("User not found");
+          }
+
+          if (
+            await !bcrypt.compare(credentials.password, userData.password_hash)
+          ) {
+            throw new Error("Invalid credentials");
+          }
+
+          // Return user object that will be stored in the JWT
+          return {
+            id: data.user.user_id.toString(),
+            email: data.user.email,
+            name: data.user.full_name,
+            schoolId: data.user.school_id,
+            allowance: data.user.allowance,
+            savingsGoal: data.user.savings_goal,
+          };
+        } catch (error) {
+          console.error("Authorization error:", error);
+          return null;
+        }
+      },
+    }),
   ],
   session: {
     strategy: "jwt",
@@ -62,6 +112,22 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, profile }) {
       // Initial sign in
       if (account) {
+        const response = await supabase
+          .from("users")
+          .select("*")
+          .eq("email", token.email)
+          .single();
+
+        if (!response.data) {
+          await supabase.from("users").insert({
+            email: token.email,
+            full_name: token.name,
+            profile_url: token.picture,
+            password_hash: "",
+            provider: "google",
+          });
+        }
+
         return {
           ...token,
           access_token: account.access_token,
