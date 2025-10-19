@@ -8,6 +8,7 @@ export interface User {
   savings_goal: number;
   created_at: string;
 }
+
 export interface Expense {
   expense_id: number;
   user_id: number;

@@ -13,14 +13,14 @@ const BottomNav = () => {
   const navRoutes: NavRoutes[] = [
     { icon: <House />, route: "/home" },
     { icon: <ChartPie />, route: "/insight" },
-    { icon: <WalletMinimal />, route: "/budget" },
+    { icon: <WalletMinimal />, route: "/expenses" },
     { icon: <User />, route: "/account" },
   ];
 
   return (
     <div className="grid grid-cols-4 items-center sticky bottom-0 rounded-t-md shadow-2xl">
       {navRoutes.map((navRoute) => (
-        <Link href={navRoute.route}>
+        <Link href={navRoute.route} key={navRoute.route}>
           <div className="flex flex-col justify-center items-center">
             {navRoute.icon}
             <p className="text-sm capitalize">
