@@ -52,3 +52,23 @@ export interface UploadResult {
   error?: string;
   message?: string;
 }
+
+
+interface ExpenseData {
+  expense_id: number;
+  user_id: number;
+  category_id: number | null;
+  amount: number;
+  description: string | null;
+  payment_method: string;
+  source: string;
+  emotion_tag: string | null;
+  expense_date: string;
+  created_at: string;
+}
+
+interface UserData {
+  full_name: string;
+  allowance: number;
+  savings_goal: number | null;
+}
