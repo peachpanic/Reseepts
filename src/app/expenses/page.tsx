@@ -1,12 +1,91 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ExpenseItem from "@/components/expenses/ExpenseItem";
 
 export default function ExpensePage() {
   const [activeTab, setActiveTab] = useState<"expenses" | "bills">("expenses");
   const [screen, setScreen] = useState<"main" | "upload">("main");
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initialize camera when toggled
+  useEffect(() => {
+    if (isCameraActive && videoRef.current) {
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: "environment" } })
+        .then((stream) => {
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        })
+        .catch((err) => console.error("Error accessing camera:", err));
+    }
+
+    // Cleanup: stop the camera when deactivated
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+        tracks.forEach((track) => track.stop());
+      }
+    };
+  }, [isCameraActive]);
+
+  const handleCapture = () => {
+    if (videoRef.current && canvasRef.current) {
+      const context = canvasRef.current.getContext("2d");
+      if (context) {
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+        context.drawImage(videoRef.current, 0, 0);
+        const imageData = canvasRef.current.toDataURL("image/png");
+        setCapturedImage(imageData);
+        setIsCameraActive(false);
+      }
+    }
+  };
+
+  const handleUpload = () => {
+    if (capturedImage) {
+      // TODO: Send capturedImage to API or process it
+      console.log("Uploading captured image:", capturedImage);
+      setScreen("main");
+      setCapturedImage(null);
+    }
+  };
+
+  const handleCancel = () => {
+    // Stop camera explicitly
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setScreen("main");
+    setIsCameraActive(false);
+    setCapturedImage(null);
+  };
+
+  const handleReset = () => {
+    setIsCameraActive(false);
+    setCapturedImage(null);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageData = e.target?.result as string;
+        setCapturedImage(imageData);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const expenses = [
     {
@@ -127,16 +206,86 @@ export default function ExpensePage() {
                 className="w-full flex flex-col items-center justify-center bg-white"
               >
                 <h2 className="text-xl font-semibold mb-4">Upload Receipt</h2>
-                <div className="bg-yellow-300 rounded-lg p-4 mb-6"></div>
-                <button
-                  className="border rounded-full px-8 py-2 text-[#429690] font-semibold mb-4"
-                  onClick={() => setScreen("main")}
-                >
-                  Scan Receipt
-                </button>
+                <div className="bg-yellow-300 rounded-lg p-4 mb-6">
+                  {isCameraActive ? (
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      className="h-[55vh] w-full object-cover rounded-lg"
+                    />
+                  ) : capturedImage ? (
+                    <img
+                      src={capturedImage}
+                      alt="Captured Receipt"
+                      className="h-[55vh] w-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <img
+                      src="/images/components/receipt.svg"
+                      alt="Receipt"
+                      className="h-[55vh] object-contain"
+                    />
+                  )}
+                </div>
+                <canvas ref={canvasRef} className="hidden" />
+
+                {!isCameraActive && !capturedImage && (
+                  <div className="flex flex-col gap-1 mb-3">
+                    <button
+                      className="border rounded-full px-8 py-2 text-[#429690] font-semibold mb-2"
+                      onClick={() => setIsCameraActive(true)}
+                    >
+                      Scan Receipt
+                    </button>
+                    <button
+                      className="border rounded-full px-8 py-2 text-[#429690] font-semibold"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Choose File
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+
+                {isCameraActive && (
+                  <div>
+                    <button
+                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-[#429690] hover:bg-[#2d6d68]"
+                      onClick={handleCapture}
+                    >
+                      Capture
+                    </button>
+                  </div>
+                )}
+
+                {capturedImage && (
+                  <div>
+                    <button
+                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-[#429690] hover:bg-[#2d6d68]"
+                      onClick={handleUpload}
+                    >
+                      Upload
+                    </button>
+
+                    <button
+                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-[#429690] hover:bg-[#2d6d68]"
+                      onClick={handleReset}
+                    >
+                      Reset
+                    </button>
+                  </div>
+                )}
+
                 <button
                   className="border rounded-full px-8 py-2 text-[#429690] font-semibold"
-                  onClick={() => setScreen("main")}
+                  onClick={handleCancel}
                 >
                   Cancel
                 </button>
