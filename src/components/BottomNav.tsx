@@ -19,9 +19,9 @@ const BottomNav = () => {
   ];
 
   const { data: session, status } = useSession();
-  
+
   if (status !== "authenticated") {
-    return null
+    return null;
   }
 
   return (
