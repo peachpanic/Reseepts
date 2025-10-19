@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { NextRequest, NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     // Read and encode image
     const imageBuffer = fs.readFileSync(resolvedPath);
-    const base64Image = imageBuffer.toString('base64');
+    const base64Image = imageBuffer.toString("base64");
 
     // Detect file type
     const ext = path.extname(imagePath).toLowerCase();
@@ -115,9 +115,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(parsedJSON);
 
   } catch (error) {
-    console.error('OCR API error:', error);
+    console.error("OCR API error:", error);
     return NextResponse.json(
-      { error: 'Failed to process OCR request' },
+      { error: "Failed to process OCR request" },
       { status: 500 }
     );
   }
