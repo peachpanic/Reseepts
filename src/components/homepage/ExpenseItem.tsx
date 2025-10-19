@@ -8,7 +8,7 @@ export default function ExpenseItem({ expense }: { expense: Expense }) {
       <div className="flex flex-col">
         <span className="font-medium">{expense.expense_id}</span>
         <span className="text-gray-600 text-sm">
-          {expense.expense_date.toLocaleDateString(undefined, {
+          {expense.expense_date.toLocaleDateString("en-PH", {
             day: "numeric",
             month: "long",
             year: "numeric",
