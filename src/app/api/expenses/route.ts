@@ -4,7 +4,9 @@ import { NextRequest } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     // Get ID from query parameters
-    const id = req.nextUrl.searchParams.get("id");
+    const searchParams = req.nextUrl.searchParams;
+    const id = searchParams.get("id");
+    const period = searchParams.get("period");
 
     console.log("Fetching expenses for user:", id);
 
@@ -14,21 +16,25 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Get expenses from User
-    const { data: expenses, error } = await supabase
-      .from("expenses")
-      .select("*")
+    const { data: transactions, error } = await supabase
+      .from("transactions")
+      .select("*, transaction_item(*)")
       .eq("user_id", id);
 
-    // Handle error
     if (error) {
+      console.log("Error fetching transactions:", error);
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
+        headers: { "Content-Type": "application/json" },
       });
     }
 
-    // Success
-    return new Response(JSON.stringify({ expenses }), { status: 200 });
+    console.log("Fetched transactions:", JSON.stringify(transactions, null, 2));
+
+    return new Response(JSON.stringify({ transactions }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("Error fetching expenses:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {

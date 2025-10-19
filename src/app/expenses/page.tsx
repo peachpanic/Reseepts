@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import ExpenseItem from "@/components/expenses/ExpenseItem";
+import CategoryDialog from "@/components/CategoryDialog";
+import { useOCR } from "@/hooks/useOCR";
+import { uploadImage } from "@/lib/services/ocrService";
 
 export default function ExpensePage() {
   const router = useRouter();
@@ -12,9 +15,19 @@ export default function ExpensePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [ocrResults, setOcrResults] = useState<unknown>(null);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Use OCR hook
+  const {
+    result: ocrResult,
+    loading: ocrLoading,
+    error: ocrError,
+    performOCROnImage,
+  } = useOCR();
 
   // Initialize camera when toggled
   useEffect(() => {
@@ -81,15 +94,30 @@ export default function ExpensePage() {
   const handleReset = () => {
     setIsCameraActive(false);
     setCapturedImage(null);
+    setOcrResults(null);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         const imageData = e.target?.result as string;
         setCapturedImage(imageData);
+
+        // Upload file and trigger OCR
+        setIsLoading(true);
+        try {
+          const uploadResponse = await uploadImage(file);
+          if (uploadResponse.success) {
+            // Perform OCR on the uploaded file
+            await performOCROnImage(uploadResponse.filename);
+          }
+        } catch (error) {
+          console.error("Error uploading or processing file:", error);
+        } finally {
+          setIsLoading(false);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -143,10 +171,17 @@ export default function ExpensePage() {
           <i className="bx bx-chevron-left"></i>{" "}
         </button>
         <h2 className="text-white text-lg">Expenses</h2>
-        <button>
-          <i className="bx bx-bell"></i>{" "}
+        <button onClick={() => setIsCategoryDialogOpen(true)} className="cursor-ponter">
+          Category
         </button>
       </div>
+      
+      {/* Category Dialog */}
+      <CategoryDialog 
+        isOpen={isCategoryDialogOpen}
+        onClose={() => setIsCategoryDialogOpen(false)}
+      />
+      
       {/* Main Content */}
       <div className="bg-white rounded-lg p-4 min-h-screen">
         <div className="relative min-h-[300px]">
@@ -329,33 +364,56 @@ export default function ExpensePage() {
                   <h3 className="text-lg font-semibold text-black mb-4">
                     Detected Items
                   </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div>
-                        <p className="font-medium text-black">Item 1</p>
-                        <p className="text-sm text-gray-500">Category: Food</p>
-                      </div>
-                      <p className="font-semibold text-[#429690]">$25.50</p>
+                  {ocrError && (
+                    <div className="p-4 bg-red-50 rounded-lg border border-red-200 mb-4">
+                      <p className="text-sm text-red-700">Error: {ocrError}</p>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div>
-                        <p className="font-medium text-black">Item 2</p>
-                        <p className="text-sm text-gray-500">
-                          Category: Beverages
-                        </p>
-                      </div>
-                      <p className="font-semibold text-[#429690]">$8.99</p>
+                  )}
+                  {ocrLoading && (
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <p className="text-sm text-blue-700">Processing OCR...</p>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                      <div>
-                        <p className="font-medium text-black">Item 3</p>
-                        <p className="text-sm text-gray-500">
-                          Category: Snacks
-                        </p>
+                  )}
+                  {ocrResult && !ocrLoading ? (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-gray-700 font-medium mb-2">OCR Results:</p>
+                        <pre className="text-xs text-gray-600 overflow-auto max-h-64 bg-white p-2 rounded border border-gray-200 whitespace-pre-wrap break-words">
+                          {typeof ocrResult === "string"
+                            ? ocrResult
+                            : JSON.stringify(ocrResult, null, 2)}
+                        </pre>
                       </div>
-                      <p className="font-semibold text-[#429690]">$12.75</p>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <p className="font-medium text-black">Item 1</p>
+                          <p className="text-sm text-gray-500">Category: Food</p>
+                        </div>
+                        <p className="font-semibold text-[#429690]">$25.50</p>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <p className="font-medium text-black">Item 2</p>
+                          <p className="text-sm text-gray-500">
+                            Category: Beverages
+                          </p>
+                        </div>
+                        <p className="font-semibold text-[#429690]">$8.99</p>
+                      </div>
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <p className="font-medium text-black">Item 3</p>
+                          <p className="text-sm text-gray-500">
+                            Category: Snacks
+                          </p>
+                        </div>
+                        <p className="font-semibold text-[#429690]">$12.75</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Total */}

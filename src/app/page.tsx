@@ -141,8 +141,8 @@ export default function Home() {
                 zIndex: 40,
               }}
             >
-              {/* {!showLoginForm ? (
-                <div className=" space-y-2 pt-6 mt-6 md:pt-0">
+              {!showLoginForm ? (
+                <div className="space-y-2 pt-6 mt-6 md:pt-0">
                   <motion.h1
                     className="md:hidden text-3xl mt-6 md:mt-2 md:text-5xl font-bold"
                     initial={{ x: -30, opacity: 0 }}
@@ -154,31 +154,140 @@ export default function Home() {
                       Reseepts
                     </span>
                   </motion.h1>
-                  <div className="flex flex-col items-center gap-4 mt-4">
-                    <div className="flex flex-row">
-                      <button
-                        onClick={() => setShowLoginForm(true)}
-                        className="w-full sm:w-auto bg-white text-[#3E7C78] px-8 py-3 rounded-xl text-lg font-semibold shadow-lg hover:scale-105 transform transition"
-                      >
-                        Get Started
-                      </button>
-                    </div>
 
-                    <div className="flex flex-row">
-                      <button
-                        onClick={() => setShowLoginForm(true)}
-                        className="w-full sm:w-auto text-base px-6 py-3 rounded-xl text-md hover:bg-white/5"
-                      >
+                  <motion.p
+                    className="md:hidden text-sm text-gray-600 mt-3"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.8, ease: "easeOut", delay: 0.25 }}
+                  >
+                    Capture receipts, track spending, and get smart insights
+                  </motion.p>
+
+                  <div className="flex flex-col items-center gap-4 mt-12">
+                    <motion.button
+                      onClick={() => setShowLoginForm(true)}
+                      className="cursor-pointer not-only-of-type:w-full sm:w-auto bg-white text-teal-600 px-8 py-3 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform transition duration-200"
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{
+                        duration: 0.6,
+                        ease: "easeOut",
+                        delay: 0.35,
+                      }}
+                    >
+                      Get Started
+                    </motion.button>
+
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{
+                        duration: 0.8,
+                        ease: "easeOut",
+                        delay: 0.45,
+                      }}
+                      className="text-center"
+                    >
+                      <p className="text-teal-600 md:text-white font-medium">
                         Already have an account?{" "}
-                        <span className="text-[#3E7C78]">Sign in</span>
-                      </button>
-                    </div>
+                        <button
+                          onClick={() => setShowLoginForm(true)}
+                          className="text-teal-600 md:text-white font-bold underline hover:text-gray-100 transition duration-200 cursor-pointer"
+                        >
+                          Sign in
+                        </button>
+                      </p>
+                    </motion.div>
                   </div>
                 </div>
-              ) : ( */}
-              <div className="text-base md:bg-[#EEF8F7] p-2 rounded-md">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-semibold">Sign in</h3>
+              ) : (
+                <div className="bg-white rounded-2xl py-10 px-20 md:py-8 shadow-xl">
+                  <div className="flex items-center justify-center mb-6">
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      Sign in
+                    </h3>
+                  </div>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const form = e.currentTarget as HTMLFormElement & {
+                        email?: HTMLInputElement;
+                        password?: HTMLInputElement;
+                      };
+                      const email = (
+                        form.elements.namedItem("email") as HTMLInputElement
+                      )?.value;
+                      const password = (
+                        form.elements.namedItem("password") as HTMLInputElement
+                      )?.value;
+                      signIn("credentials", { email, password });
+                    }}
+                    className="space-y-4"
+                  >
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Email
+                      </label>
+                      <input
+                        name="email"
+                        type="email"
+                        required
+                        placeholder=""
+                        className="w-full px-4 py-3 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Password
+                      </label>
+                      <input
+                        name="password"
+                        type="password"
+                        required
+                        placeholder="••••••••"
+                        className="w-full px-4 py-3 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="cursor-pointer w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition duration-200 mt-6"
+                    >
+                      Sign in
+                    </button>
+                  </form>
+
+                  {/* OR separator */}
+                  <div className="flex items-center gap-3 my-6">
+                    <span className="flex-1 h-px bg-gray-200" />
+                    <span className="text-xs text-gray-500 font-medium">OR</span>
+                    <span className="flex-1 h-px bg-gray-200" />
+                  </div>
+
+                  {/* Google Sign In */}
+                  <div className="flex items-center justify-center">
+                    <div className="w-full">
+                      <GoogleButton />
+                    </div>
+                  </div>
+
+                  {/* Sign Up Link */}
+                  <div className="text-center text-sm mt-6 pt-4 border-t border-gray-200">
+                    <span className="text-gray-600">
+                      Don't have an account?{" "}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowLoginForm(false);
+                      }}
+                      className="text-teal-600 font-semibold hover:text-teal-700 transition duration-200 cursor-pointer"
+                    >
+                      Sign up
+                    </button>
+                  </div>
                 </div>
 
                 {/* Use the LoginForm component for validation and structure */}

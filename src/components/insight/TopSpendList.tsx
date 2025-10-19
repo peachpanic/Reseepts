@@ -2,8 +2,10 @@
 
 import ExpenseItem from "@/components/homepage/ExpenseItem";
 import { Button } from "@/components/ui/button";
+import { useTopTransactions } from "@/hooks/useTopTransaction";
 import { ArrowUpDown } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { Skeleton } from "@/components/ui/skeleton"; // Add this import
 
 const mockExpenses = [
   {
@@ -47,18 +49,40 @@ const mockExpenses = [
   },
 ];
 
-export function TopSpendList() {
-  // const { data: session, status } = useSession();
-  // const { data: expenses, isLoading } = useExpenses(session?.user?.id ?? null);
+type TopSpendProps = {
+  period: string;
+};
 
-  // Use mock data instead
-  const expenses = mockExpenses;
-  const isLoading = false;
+export function TopSpendList({ period = "day" }: TopSpendProps) {
+  const { data: session, status } = useSession();
+
+  const { data: expenses, isLoading } = useTopTransactions("1", period);
 
   if (isLoading) {
     return (
       <>
-        <div>hello</div>
+        <div className="flex flex-row justify-between items-center p-4">
+          <h1 className="text-xl font-semibold">Top Spending</h1>
+          <span>
+            <Button variant="ghost" size="sm" disabled>
+              <ArrowUpDown />
+            </Button>
+          </span>
+        </div>
+        <div className="mx-4 space-y-2">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex flex-row p-2 rounded-md border-black justify-between bg-teal-700 items-center"
+            >
+              <div className="flex flex-col space-y-1">
+                <Skeleton className="h-4 w-32 bg-gray-600" />
+                <Skeleton className="h-3 w-24 bg-gray-600" />
+              </div>
+              <Skeleton className="h-4 w-16 bg-gray-600" />
+            </div>
+          ))}
+        </div>
       </>
     );
   }
@@ -79,8 +103,12 @@ export function TopSpendList() {
         </span>
       </div>
       <div className="mx-4 space-y-2">
-        {expenses?.map((expense) => (
-          <ExpenseItem key={expense.expense_id} expense={expense} />
+        {expenses?.map((expense, index) => (
+          <ExpenseItem
+            key={expense.expense_id}
+            expense={expense}
+            className={index % 2 === 0 ? "bg-gray-100" : "bg-white"}
+          />
         ))}
       </div>
     </>

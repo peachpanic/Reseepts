@@ -25,7 +25,7 @@ const BottomNav = () => {
   }
 
   return (
-    <div className="grid grid-cols-4 items-center fixed bottom-0 left-0 right-0 w-full rounded-t-md shadow-2xl">
+    <div className="grid grid-cols-4 items-center sticky bg-white py-1 bottom-0 left-0 right-0 w-full rounded-t-md shadow-2xl">
       {navRoutes.map((navRoute) => (
         <Link href={navRoute.route} key={navRoute.route}>
           <div className="flex flex-col justify-center items-center">
