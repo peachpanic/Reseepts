@@ -44,6 +44,18 @@ export default function Home() {
         <div className="w-full h-full mx-auto grid grid-cols-1 md:grid-cols-2 items-center">
           {/* left */}
           <div className="flex flex-col justify-center items-center text-center h-full md:text-left md:bg-[#EEF8F7] rounded-tr-2xl rounded-br-2xl">
+            {/*  top left logo */}
+            {/* <div className="absolute top-6 left-6 md:top-8 md:left-8">
+              <Image
+                src="/reseepts.png"
+                alt="Reseepts Logo"
+                width={108}
+                height={108}
+                sizes="48px"
+                className="w-12 h-12 md:w-12 md:h-12"
+              />
+            </div>
+             */}
             <motion.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -90,17 +102,23 @@ export default function Home() {
                 alt="Man"
                 width={400}
                 height={400}
-                className="mb-4"
+                sizes="(max-width: 768px) 160px, 384px"
+                className="mb-4 w-52 h-auto md:w-96"
               />
             </motion.div>
 
-            <div className="text-base space-y-3 px-4 md:px-0">
-              <h1 className="text-3xl md:text-5xl font-bold">
+            <div className="hidden md:block text-base space-y-3 px-4 md:px-0">
+              <motion.h1
+                className="text-3xl md:text-5xl font-bold"
+                initial={{ x: -40, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
                 Welcome to{" "}
                 <span className="bg-gradient-to-r from-teal-400 to-teal-600 bg-clip-text text-transparent">
                   Reseepts
                 </span>
-              </h1>
+              </motion.h1>
               <p className="text-sm text-center md:text-lg opacity-90 max-w-lg">
                 Capture receipts, track spending, and get smart insights — all
                 in one place.
@@ -109,32 +127,54 @@ export default function Home() {
           </div>
           {/* right */}
 
-          <div className="flex items-center justify-center">
-            <div className="fixed left-1/2 bottom-6 z-40 w-[92%] max-w-md transform -translate-x-1/2 bg-white bg-opacity-90 backdrop-blur-lg rounded-xl p-6 md:p-8 md:static md:left-auto md:bottom-auto md:translate-x-0 md:w-full md:max-w-md md:bg-transparent md:backdrop-blur-0 text-center md:text-left">
+          <div className="flex items-center h-full md:bg-transparent bg-white justify-center">
+            {/* Slanted shape using clip-path on small screens (no rotate). Removed rotation/relative positioning. */}
+            <div
+              className="z-40 backdrop-blur-lg p-6 md:p-8 md:w-full md:bg-transparent md:backdrop-blur-0 text-center md:text-left"
+              style={{
+                background: "rgba(255,255,255,0.95)",
+                clipPath: "polygon(0 0, 100% 10%, 100% 100%, 0 100%)",
+                WebkitClipPath: "polygon(0 0, 100% 10%, 100% 100%, 0 100%)",
+                height: "50vh",
+                width: "100%",
+                position: "fixed",
+                left: 0,
+                bottom: 0,
+                zIndex: 40,
+              }}
+            >
               {!showLoginForm ? (
-                <div className="space-y-2">
-                  <div className="flex md:flex-col sm:flex-row items-center gap-4 mt-4">
+                <div className=" space-y-2 pt-6 mt-6 md:pt-0">
+                  <motion.h1
+                    className="md:hidden text-3xl mt-6 md:mt-2 md:text-5xl font-bold"
+                    initial={{ x: -30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
+                  >
+                    Welcome to{" "}
+                    <span className="bg-gradient-to-r from-teal-400 to-teal-600 bg-clip-text text-transparent">
+                      Reseepts
+                    </span>
+                  </motion.h1>
+                  <div className="flex flex-col items-center gap-4 mt-4">
                     <div className="flex flex-row">
                       <button
                         onClick={() => setShowLoginForm(true)}
                         className="w-full sm:w-auto bg-white text-[#3E7C78] px-8 py-3 rounded-xl text-lg font-semibold shadow-lg hover:scale-105 transform transition"
                       >
-                        Create account
+                        Get Started
                       </button>
                     </div>
 
                     <div className="flex flex-row">
                       <button
                         onClick={() => setShowLoginForm(true)}
-                        className="w-full sm:w-auto border border-white/30 text-base px-6 py-3 rounded-xl text-md hover:bg-white/5"
+                        className="w-full sm:w-auto text-base px-6 py-3 rounded-xl text-md hover:bg-white/5"
                       >
-                        Already have an account? Sign in
+                        Already have an account?{" "}
+                        <span className="text-[#3E7C78]">Sign in</span>
                       </button>
                     </div>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-center">
-                    <GoogleButton />
                   </div>
                 </div>
               ) : (
@@ -205,17 +245,15 @@ export default function Home() {
                     </div>
 
                     <div className="flex items-center justify-center">
-                      <button
-                        type="button"
-                        onClick={() => signIn("google")}
-                        className="w-full sm:w-auto border border-white/30 text-base px-4 py-2 rounded-md bg-white/95 text-black"
-                      >
-                        Continue with Google
-                      </button>
+                      <div className="mt-4 flex items-center justify-center">
+                        <GoogleButton />
+                      </div>
                     </div>
 
                     <div className="text-center text-sm mt-2">
-                      <span className="text-white/80">Don’t have an account? </span>
+                      <span className="text-white/80">
+                        Don’t have an account?{" "}
+                      </span>
                       <button
                         type="button"
                         onClick={() => {
@@ -231,6 +269,8 @@ export default function Home() {
                 </div>
               )}
             </div>
+            {/* remove clip-path on md+ screens */}
+            <style>{`@media (min-width: 768px) { div[style] { clip-path: none !important; -webkit-clip-path: none !important; position: static !important; height: auto !important; width: auto !important; background: transparent !important; } }`}</style>
           </div>
         </div>
       </main>
