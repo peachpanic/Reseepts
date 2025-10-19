@@ -1,12 +1,5 @@
+import { Category } from "@/lib/definitions";
 import { useState, useCallback } from "react";
-
-export interface Category {
-  id?: string;
-  category_id?: string;
-  category_name: string;
-  icon: string;
-  user_id?: string;
-}
 
 export const useCategories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -31,7 +24,7 @@ export const useCategories = () => {
 
   // Create category
   const createCategory = useCallback(
-    async (category: Omit<Category, "id" | "category_id">) => {
+    async (category: Omit<Category, "category_id">) => {
       setLoading(true);
       setError(null);
       try {
@@ -57,11 +50,11 @@ export const useCategories = () => {
 
   // Update category
   const updateCategory = useCallback(
-    async (id: string, updates: Partial<Category>) => {
+    async (categoryId: number, updates: Partial<Omit<Category, "category_id" | "user_id">>) => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/categories/${id}`, {
+        const response = await fetch(`/api/categories/${categoryId}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(updates),
@@ -69,7 +62,7 @@ export const useCategories = () => {
         if (!response.ok) throw new Error("Failed to update category");
         const updatedCategory = await response.json();
         setCategories((prev) =>
-          prev.map((cat) => (cat.category_id === id ? updatedCategory : cat))
+          prev.map((cat) => (cat.category_id === categoryId ? updatedCategory : cat))
         );
         return updatedCategory;
       } catch (err) {
@@ -84,15 +77,15 @@ export const useCategories = () => {
   );
 
   // Delete category
-  const deleteCategory = useCallback(async (id: string) => {
+  const deleteCategory = useCallback(async (categoryId: number) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/categories/${id}`, {
+      const response = await fetch(`/api/categories/${categoryId}`, {
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Failed to delete category");
-      setCategories((prev) => prev.filter((cat) => cat.category_id !== id));
+      setCategories((prev) => prev.filter((cat) => cat.category_id !== categoryId));
     } catch (err) {
       const message = err instanceof Error ? err.message : "An error occurred";
       setError(message);
@@ -112,3 +105,5 @@ export const useCategories = () => {
     deleteCategory,
   };
 };
+
+
