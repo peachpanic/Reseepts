@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 
 export default function Homepage() {
+
   return (
     <div className="flex flex-col w-full h-full justify-center items-center">
       <div className="flex flex-col w-full bg-teal-600 py-8 px-4 mb-4 text-white">
