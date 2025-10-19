@@ -275,34 +275,169 @@ export default function GeminiPage() {
   const parsedOCRResult =
     typeof ocrResult === "string" ? JSON.parse(ocrResult) : ocrResult;
 
-  // Function to handle adding user input to OCR result
-  const handleAddItem = () => {
-    if (!parsedOCRResult || !userInput.trim()) return;
-
-    const parsedInput = userInput.match(/^(.*)\s+(\d+)\s*PHP$/i);
-    if (!parsedInput) {
-      alert("Invalid format. Use 'ItemName Price PHP'.");
+  // Function to send a chat completion request to the assistant to add items
+  // The assistant is expected to return the full updated OCR JSON (only JSON)
+  const handleChatSubmit = async () => {
+    if (!parsedOCRResult) {
+      alert("No OCR result to augment. Perform OCR first.");
       return;
     }
 
-    const [_, itemName, price] = parsedInput;
-    const priceNumber = parseFloat(price);
+    if (!userInput.trim()) return;
 
-    const newItem = {
-      item_name: itemName,
-      quantity: 1,
-      unit_price: priceNumber,
-      total_price: priceNumber,
-    };
+    setChatLoading(true);
+    setImageRecognitionError(null);
 
-    const updatedResult = {
-      ...parsedOCRResult,
-      amount: (parsedOCRResult.amount || 0) + priceNumber,
-      line_items: [...(parsedOCRResult.line_items || []), newItem],
-    };
+    try {
+      // Use the most recent result as the base (preserve prior assistant edits)
+      const base = updatedOCRResult ?? parsedOCRResult;
 
-    setUpdatedOCRResult(updatedResult);
-    setUserInput("");
+      // Strong system instruction: require exact JSON-only output and give a concrete example
+      const systemInstruction = `You are an assistant that receives an existing expense JSON and a short user instruction. You MUST return ONLY a single valid JSON object (no markdown, no code fences, no explanation). The JSON must match the same schema and use null for missing fields. Numeric fields must be numbers, not strings.
+
+Example:
+Input JSON: ${JSON.stringify(base)}
+Instruction: Add: Minecraft 1000 PHP
+
+Expected output (ONLY JSON):
+${JSON.stringify({
+  user_id: null,
+  category_id: null,
+  amount: (base?.amount ?? 0) + 1000,
+  description: base?.description ?? null,
+  payment_method: base?.payment_method ?? null,
+  expense_date: base?.expense_date ?? null,
+  created_at: base?.created_at ?? null,
+  line_items: [
+    ...(base?.line_items ?? []),
+    { item_name: 'Minecraft', quantity: 1, unit_price: 1000, total_price: 1000 }
+  ]
+})}
+
+Follow the example: return only the full, updated JSON object.`;
+
+      const userMessage = `Existing OCR JSON:\n${JSON.stringify(base)}\n\nUser instruction: ${userInput}`;
+
+      const res = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'google/gemini-2.0-flash-001',
+          messages: [
+            { role: 'system', content: [{ type: 'text', text: systemInstruction }] },
+            { role: 'user', content: [{ type: 'text', text: userMessage }] },
+          ],
+        }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Request failed (${res.status}): ${errText}`);
+      }
+
+      const data = await res.json();
+      const assistantText = extractTextFromResponse(data);
+
+      // Try to parse assistantText as JSON — assistant should return a full JSON object
+      let parsed;
+      try {
+        parsed = JSON.parse(assistantText);
+      } catch (err) {
+        // If parsing fails, show raw assistant text for debugging
+        throw new Error('Assistant returned non-JSON response: ' + assistantText);
+      }
+
+      // Defensive merge: combine the previous base (which may include earlier edits)
+      // with the assistant-returned object so we don't lose prior additions.
+      const previous = base || parsedOCRResult || null;
+
+      function normalizeName(s: any) {
+        if (!s) return "";
+        return String(s).toLowerCase().replace(/[^a-z0-9\s]/gi, "").trim();
+      }
+
+      function mergeResults(prev: any, next: any) {
+        if (!prev) return next;
+        if (!next) return prev;
+
+        const out: any = { ...prev };
+        // start from prev line items (may be undefined)
+        const prevItems: any[] = Array.isArray(prev.line_items) ? prev.line_items.slice() : [];
+        const nextItems: any[] = Array.isArray(next.line_items) ? next.line_items.slice() : [];
+
+        const map: Record<string, any> = {};
+        // fold prev items into map
+        for (const it of prevItems) {
+          const key = normalizeName(it?.item_name);
+          if (!map[key]) map[key] = { ...it };
+          else {
+            // accumulate duplicates in prev
+            map[key].quantity = (Number(map[key].quantity) || 0) + (Number(it.quantity) || 0);
+            map[key].unit_price = map[key].unit_price ?? it.unit_price;
+            map[key].total_price = (Number(map[key].total_price) || 0) + (Number(it.total_price) || 0);
+          }
+        }
+
+        // merge next items: prefer to add quantities and update price if provided
+        for (const it of nextItems) {
+          const key = normalizeName(it?.item_name);
+          if (!map[key]) {
+            map[key] = { ...it };
+          } else {
+            // merge into existing
+            const existing = map[key];
+            const addQty = Number(it.quantity) || 0;
+            const addTotal = Number(it.total_price) || null;
+            // prefer unit_price from next if present and >0
+            const nextUnit = it.unit_price !== undefined && it.unit_price !== null ? Number(it.unit_price) : null;
+            if (nextUnit && nextUnit > 0) existing.unit_price = nextUnit;
+            existing.quantity = (Number(existing.quantity) || 0) + addQty;
+            if (addTotal !== null && !Number.isNaN(addTotal)) {
+              existing.total_price = (Number(existing.total_price) || 0) + addTotal;
+            } else if (existing.unit_price !== undefined && existing.unit_price !== null) {
+              existing.total_price = (Number(existing.unit_price) || 0) * (Number(existing.quantity) || 1);
+            }
+          }
+        }
+
+        // Build merged array
+        out.line_items = Object.values(map).map((it: any) => {
+          // ensure numeric types
+          const qty = Number(it.quantity) || 0;
+          const up = it.unit_price !== undefined && it.unit_price !== null ? Number(it.unit_price) : null;
+          const tp = it.total_price !== undefined && it.total_price !== null ? Number(it.total_price) : (up !== null ? up * qty : 0);
+          return {
+            item_name: it.item_name,
+            quantity: qty,
+            unit_price: up,
+            total_price: Math.round((tp + Number.EPSILON) * 100) / 100,
+          };
+        });
+
+        // Recalculate amount
+        out.amount = out.line_items.reduce((s: number, li: any) => s + (Number(li.total_price) || 0), 0);
+        out.amount = Math.round((out.amount + Number.EPSILON) * 100) / 100;
+
+        // keep other fields from 'next' (assistant's authoritative result) when present
+        out.user_id = next.user_id ?? out.user_id ?? null;
+        out.category_id = next.category_id ?? out.category_id ?? null;
+        out.description = next.description ?? out.description ?? null;
+        out.payment_method = next.payment_method ?? out.payment_method ?? null;
+        out.expense_date = next.expense_date ?? out.expense_date ?? null;
+        out.created_at = next.created_at ?? out.created_at ?? null;
+
+        return out;
+      }
+
+      const merged = mergeResults(previous, parsed);
+
+      setUpdatedOCRResult(merged);
+      setUserInput('');
+    } catch (err) {
+      setImageRecognitionError((err as Error).message);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   return (
@@ -392,34 +527,55 @@ export default function GeminiPage() {
         />
 
         {/* New Section for Adding Items */}
-        <div style={{ marginTop: "20px" }}>
-          <h3>Add Additional Items</h3>
-          <input
-            type="text"
+        <div style={{ marginTop: '20px' }}>
+          <h3>Chat to Augment OCR Result</h3>
+          <p style={{ color: '#666', fontSize: 14 }}>
+            Tell the assistant what to add or change. It will return the full
+            updated OCR JSON which will replace the current result.
+          </p>
+          <textarea
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
-            placeholder="ItemName Price PHP"
+            placeholder="e.g. Add Apple 2x 200 or Remove Apple 200"
+            rows={3}
             style={{
-              padding: "8px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
-              width: "100%",
-              marginBottom: "10px",
+              padding: '8px',
+              border: '1px solid #ccc',
+              borderRadius: '4px',
+              width: '100%',
+              marginBottom: '10px',
+              resize: 'vertical',
             }}
           />
-          <button
-            onClick={handleAddItem}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "#4CAF50",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Add Item
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={handleChatSubmit}
+              disabled={chatLoading}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#2563eb',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: chatLoading ? 'wait' : 'pointer',
+              }}
+            >
+              {chatLoading ? 'Processing...' : 'Send to Assistant'}
+            </button>
+            <button
+              onClick={() => setUserInput('')}
+              style={{
+                padding: '10px 20px',
+                backgroundColor: '#e5e7eb',
+                color: '#111827',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
         {/* Display Updated OCR Result */}

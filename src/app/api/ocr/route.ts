@@ -98,10 +98,8 @@ export async function POST(request: NextRequest) {
 
     const data = await response.json();
 
-    // --- ✅ Clean and return only structured JSON ---
     let content = data?.choices?.[0]?.message?.content || '';
 
-    // Remove Markdown fences (```json ... ```)
     content = content.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
 
     let parsedJSON;
