@@ -1,6 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { google } from "googleapis";
+import { supabase } from "@/lib/supabase";
 
 async function refreshAccessToken(token: any) {
   try {
@@ -62,6 +63,22 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, account, profile }) {
       // Initial sign in
       if (account) {
+        const response = await supabase
+          .from("users")
+          .select("*")
+          .eq("email", token.email)
+          .single();
+
+        if (!response.data) {
+          await supabase.from("users").insert({
+            email: token.email,
+            full_name: token.name,
+            profile_url: token.picture,
+            password_hash: "",
+            provider: "google",
+          });
+        }
+
         return {
           ...token,
           access_token: account.access_token,
