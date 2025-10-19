@@ -1,6 +1,9 @@
-
-
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
@@ -20,11 +23,13 @@ export const isValidFileSize = (size: number): boolean => {
 /**
  * Validate complete image file
  */
-export const validateImageFile = (file: File): { valid: boolean; error?: string } => {
+export const validateImageFile = (
+  file: File
+): { valid: boolean; error?: string } => {
   if (!isValidImageType(file.type)) {
     return {
       valid: false,
-      error: `Invalid file type. Allowed: ${ALLOWED_MIME_TYPES.join(', ')}`,
+      error: `Invalid file type. Allowed: ${ALLOWED_MIME_TYPES.join(", ")}`,
     };
   }
 
@@ -42,7 +47,7 @@ export const validateImageFile = (file: File): { valid: boolean; error?: string 
  * Get file extension
  */
 export const getFileExtension = (filename: string): string => {
-  return filename.substring(filename.lastIndexOf('.')).toLowerCase();
+  return filename.substring(filename.lastIndexOf(".")).toLowerCase();
 };
 
 /**
@@ -50,26 +55,26 @@ export const getFileExtension = (filename: string): string => {
  */
 export const getMimeTypeFromExtension = (filename: string): string => {
   const ext = getFileExtension(filename).toLowerCase();
-  
+
   const mimeTypeMap: Record<string, string> = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.jfif': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".jfif": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
   };
 
-  return mimeTypeMap[ext] || 'image/jpeg';
+  return mimeTypeMap[ext] || "image/jpeg";
 };
 
 /**
  * Format file size for display
  */
 export const formatFileSize = (bytes: number): string => {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return "0 Bytes";
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB'];
+  const sizes = ["Bytes", "KB", "MB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
 };

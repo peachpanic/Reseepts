@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useExpenses } from "@/hooks/useExpenses";
 
 export default function ExpenseList() {
-  const { data: expense, isLoading } = useExpenses("1");
+  const { data: expenses, isLoading } = useExpenses("1");
   if (isLoading) {
     return (
       <>
@@ -21,8 +21,8 @@ export default function ExpenseList() {
           <Link href="/expenses">See all</Link>
         </span>
       </div>
-      <div>
-        {expense?.map((expense) => (
+      <div className="mx-4">
+        {expenses?.map((expense) => (
           <ExpenseItem key={expense.expense_id} expense={expense} />
         ))}
       </div>

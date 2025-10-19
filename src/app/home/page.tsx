@@ -6,12 +6,14 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import Link from "next/link";
 
 export default function Homepage() {
   return (
     <div className="flex flex-col w-full h-full justify-center items-center">
-      <div className="w-full">Hello, user!</div>
+      <div className="flex flex-col w-full bg-teal-600 py-8 px-4 mb-4 text-white">
+        <div className="w-full">Good day, </div>
+        <div className="font-bold text-2xl">user!</div>
+      </div>
 
       <Card className="flex flex-col bg-green-200 w-9/10 m-4">
         <CardHeader>
