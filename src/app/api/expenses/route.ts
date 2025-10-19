@@ -29,7 +29,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Log the full nested JSON so arrays/objects don't show as [object Object]
     console.log("Fetched transactions:", JSON.stringify(transactions, null, 2));
 
     return new Response(JSON.stringify({ transactions }), {
