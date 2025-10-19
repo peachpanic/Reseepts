@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-
+import bcrypt from "bcryptjs";
 import { google } from "googleapis";
 import { supabase } from "@/lib/supabase";
 
@@ -71,20 +71,22 @@ export const authOptions: NextAuthOptions = {
         }
 
         try {
-          // Call your sign-in API
-          const res = await fetch(`${process.env.NEXTAUTH_URL}/api/signIn`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: credentials.email,
-              password: credentials.password,
-            }),
-          });
+          const { data: userData, error: userError } = await supabase
+            .from("users")
+            .select("email, password_hash")
+            .single();
 
-          const data = await res.json();
+          if (userError) {
+            throw new Error(userError.message);
+          }
+          if (!userData) {
+            throw new Error("User not found");
+          }
 
-          if (!res.ok || !data.success) {
-            throw new Error(data.error || "Invalid credentials");
+          if (
+            await !bcrypt.compare(credentials.password, userData.password_hash)
+          ) {
+            throw new Error("Invalid credentials");
           }
 
           // Return user object that will be stored in the JWT
