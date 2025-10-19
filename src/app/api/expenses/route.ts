@@ -4,7 +4,9 @@ import { NextRequest } from "next/server";
 export async function GET(req: NextRequest) {
   try {
     // Get ID from query parameters
-    const id = req.nextUrl.searchParams.get("id");
+    const searchParams = req.nextUrl.searchParams;
+    const id = searchParams.get("id");
+    const period = searchParams.get("period");
 
     console.log("Fetching expenses for user:", id);
 
