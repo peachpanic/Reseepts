@@ -5,12 +5,10 @@ import { TopSpendList } from '@/components/insight/TopSpendList';
 import { ChevronLeftIcon, Download } from 'lucide-react';
 import { TimePeriodFilter } from '@/components/insight/TimePeriodFilter';
 import { useState, useEffect } from 'react';
-import { useExpenses } from '@/hooks/useExpenses';
 
 export default function InsightPage() {
   const [period, setPeriod] = useState<string>("day")
 
-  const { data: expenses, isLoading } = useExpenses("1",);
 
   useEffect(() => {
     console.log("Selected period: ", period);

@@ -53,18 +53,22 @@ export async function GET(req: NextRequest) {
     // apply ordering
     query = query.order("expense_date", { ascending: false });
 
-    // Get expenses from User
-    const { data: expenses, error } = await query;
+      // Query a view that returns transactions with their items aggregated as
+      // `transaction_item`. Create the view in your DB (SQL provided below).
+      const { data: transactions, error } = await supabase
+        .from("transactions")
+        .select("*, transaction_item:transaction_item!expense_id(*)")
+        .eq("user_id", id);
 
-    // Handle error
+    console.log("Fetched transactions:", transactions);
+
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
       });
     }
 
-    // Success
-    return new Response(JSON.stringify({ expenses }), { status: 200 });
+    return new Response(JSON.stringify({ transactions }), { status: 200 });
   } catch (err) {
     console.error("Error fetching expenses:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {

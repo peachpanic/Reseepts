@@ -1,8 +1,8 @@
 "use client";
 
-import { Expense } from "@/lib/definitions";
+import { Transaction } from "@/lib/definitions";
 
-export default function ExpenseItem({ expense }: { expense: Expense }) {
+export default function ExpenseItem({ expense }: { expense: Transaction }) {
   // Convert expense_date to Date object if it's a string
   const formatDate = (date: Date | string) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;

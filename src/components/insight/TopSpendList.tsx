@@ -1,7 +1,7 @@
 "use client";
 
 import ExpenseItem from "@/components/homepage/ExpenseItem";
-import { useTopExpenses } from "@/hooks/useExpenses";
+import { useTopTransactions } from "@/hooks/useTopTransaction";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -10,7 +10,7 @@ type TopSpendProps = {
 }
 
 export function TopSpendList({ period = "day" }: TopSpendProps) {
-  const { data: expenses, isLoading } = useTopExpenses("1", period);
+  const { data: expenses, isLoading } = useTopTransactions("1", period);
   if (isLoading) {
     return (
       <>
