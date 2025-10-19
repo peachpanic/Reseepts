@@ -53,7 +53,6 @@ export interface UploadResult {
   message?: string;
 }
 
-
 interface ExpenseData {
   expense_id: number;
   user_id: number;
@@ -67,7 +66,7 @@ interface ExpenseData {
   created_at: string;
 }
 
-interface UserData {
+export interface UserData {
   full_name: string;
   allowance: number;
   savings_goal: number | null;
