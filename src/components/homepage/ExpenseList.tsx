@@ -3,15 +3,13 @@
 import ExpenseItem from "@/components/homepage/ExpenseItem";
 import Link from "next/link";
 import { useExpenses } from "@/hooks/useExpenses";
+import ExpenseListSkeleton from "./Skeleton/ExpenseListSkeleton";
 
 export default function ExpenseList() {
   const { data: expenses, isLoading } = useExpenses("1");
+
   if (isLoading) {
-    return (
-      <>
-        <div>hello</div>
-      </>
-    );
+    return <ExpenseListSkeleton count={4} />;
   }
   return (
     <>
