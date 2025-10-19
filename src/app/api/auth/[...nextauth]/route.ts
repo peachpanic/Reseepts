@@ -73,11 +73,13 @@ export const authOptions: NextAuthOptions = {
         try {
           const { data: userData, error: userError } = await supabase
             .from("users")
-            .select("email, password_hash")
+            .select("*")
+            .eq("email", credentials.email)
             .single();
 
           if (userError) {
-            throw new Error(userError.message);
+            console.error("Supabase user fetch error:", userError);
+            throw new Error("Unknown user");
           }
           if (!userData) {
             throw new Error("User not found");
@@ -91,12 +93,12 @@ export const authOptions: NextAuthOptions = {
 
           // Return user object that will be stored in the JWT
           return {
-            id: data.user.user_id.toString(),
-            email: data.user.email,
-            name: data.user.full_name,
-            schoolId: data.user.school_id,
-            allowance: data.user.allowance,
-            savingsGoal: data.user.savings_goal,
+            id: userData.user_id.toString(),
+            email: userData.email,
+            name: userData.full_name,
+            schoolId: userData.school_id,
+            allowance: userData.allowance,
+            savingsGoal: userData.savings_goal,
           };
         } catch (error) {
           console.error("Authorization error:", error);

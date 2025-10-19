@@ -36,6 +36,6 @@ export function LoginForm() {
         />
         <Button type="submit">Login</Button>
       </form>
-    </Form>
+    </Form>''
   );
 }
