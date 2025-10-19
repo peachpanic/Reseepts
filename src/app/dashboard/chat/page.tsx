@@ -4,10 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useOCR } from "@/hooks/useOCR";
 import { FileUploadInput } from "@/components/FileUploadInput";
-import { FileNameInput } from "@/components/FileNameInput";
 import { OCRButton } from "@/components/OCRButton";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
-import Image from "next/image";
 
 // Helper: remove Markdown code fences (e.g., ```text ... ```) and trim
 function stripCodeFences(text: string): string {
