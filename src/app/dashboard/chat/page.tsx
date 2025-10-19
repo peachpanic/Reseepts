@@ -121,6 +121,10 @@ export default function GeminiPage() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Add state for user input and updated OCR result
+  const [userInput, setUserInput] = useState("");
+  const [updatedOCRResult, setUpdatedOCRResult] = useState(null);
+
   useEffect(() => {
     const fetchImageRecognition = async () => {
       try {
@@ -158,7 +162,16 @@ export default function GeminiPage() {
   const handleOCRSubmit = async () => {
     const targetFilename = filename || manualFilename;
     if (!targetFilename) return;
-    await performOCROnImage(targetFilename);
+
+    setImageRecognitionError(null);
+    setImageRecognitionResponse(null);
+
+    try {
+      await performOCROnImage(targetFilename);
+      setImageRecognitionResponse(JSON.stringify(ocrResult, null, 2));
+    } catch (error) {
+      setImageRecognitionError((error as Error).message);
+    }
   };
 
   // Opens dialog for file picker
@@ -206,9 +219,8 @@ export default function GeminiPage() {
     let imageContent: MessageContent[] = [];
     if (filename) {
       try {
-        // Our uploads are saved to public/images, which is served at /images
         const res = await fetch(`/images/${filename}`);
-        if (!res.ok) throw new Error(`Failed to load image (${res.status})`);
+        if (!res.ok) throw new Error(`Failed to load image (${res.status}`);
         const blob = await res.blob();
         const dataUrl = await blobToDataUrl(blob);
         imageContent = [
@@ -246,7 +258,7 @@ export default function GeminiPage() {
 
       if (!res.ok) {
         const errText = await res.text();
-        throw new Error(errText || `Request failed (${res.status})`);
+        throw new Error(`errText || Request failed (${res.status}`);
       }
 
       const data = await res.json();
@@ -259,6 +271,40 @@ export default function GeminiPage() {
     }
   };
 
+  // Ensure ocrResult is parsed as JSON
+  const parsedOCRResult =
+    typeof ocrResult === "string" ? JSON.parse(ocrResult) : ocrResult;
+
+  // Function to handle adding user input to OCR result
+  const handleAddItem = () => {
+    if (!parsedOCRResult || !userInput.trim()) return;
+
+    const parsedInput = userInput.match(/^(.*)\s+(\d+)\s*PHP$/i);
+    if (!parsedInput) {
+      alert("Invalid format. Use 'ItemName Price PHP'.");
+      return;
+    }
+
+    const [_, itemName, price] = parsedInput;
+    const priceNumber = parseFloat(price);
+
+    const newItem = {
+      item_name: itemName,
+      quantity: 1,
+      unit_price: priceNumber,
+      total_price: priceNumber,
+    };
+
+    const updatedResult = {
+      ...parsedOCRResult,
+      amount: (parsedOCRResult.amount || 0) + priceNumber,
+      line_items: [...(parsedOCRResult.line_items || []), newItem],
+    };
+
+    setUpdatedOCRResult(updatedResult);
+    setUserInput("");
+  };
+
   return (
     <div
       style={{
@@ -268,197 +314,6 @@ export default function GeminiPage() {
         margin: "0 auto",
       }}
     >
-      <h1>🖼️ Image Recognition & OCR Tool</h1>
-      {/* Unified chat and image input */}
-      <div
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-          background: "var(--background)",
-          paddingBottom: 16,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            border: "1px solid #e5e7eb",
-            background: "#fff",
-            borderRadius: 9999,
-            padding: "8px 12px",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-          }}
-        >
-          {/* Opening of image file */}
-          <button
-            type="button"
-            onClick={handlePickImage}
-            disabled={uploadLoading || chatLoading}
-            title="Add image"
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: "9999px",
-              border: "1px solid #e5e7eb",
-              background: "#f8fafc",
-              fontSize: 18,
-              lineHeight: "32px",
-              textAlign: "center",
-              cursor: "pointer",
-            }}
-          >
-            +
-          </button>
-
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            onChange={handleLocalFileChange}
-            style={{ display: "none" }}
-          />
-
-          {imagePreviewUrl ? (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                background: "#f1f5f9",
-                borderRadius: 9999,
-                padding: "4px 8px",
-                maxWidth: 180,
-              }}
-            >
-              <Image
-                src={imagePreviewUrl}
-                alt="selected"
-                width={24}
-                height={24}
-                style={{
-                  borderRadius: 6,
-                  objectFit: "cover",
-                }}
-              />
-              <span
-                style={{
-                  fontSize: 12,
-                  color: "#334155",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {filename || "image"}
-              </span>
-              <button
-                type="button"
-                onClick={clearSelectedImage}
-                title="Remove"
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                  fontSize: 14,
-                  color: "#64748b",
-                }}
-              >
-                ×
-              </button>
-            </div>
-          ) : null}
-
-          {/* Text input */}
-          <input
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Ask anything"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleUnifiedSubmit();
-              }
-            }}
-            style={{
-              flex: 1,
-              border: "none",
-              outline: "none",
-              fontSize: 16,
-              padding: "8px 4px",
-              background: "transparent",
-            }}
-          />
-
-          {/* Optional mic button (no-op placeholder) */}
-          <button
-            type="button"
-            disabled
-            title="Voice (coming soon)"
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: "9999px",
-              border: "1px solid #e5e7eb",
-              background: "#f8fafc",
-              fontSize: 16,
-              lineHeight: "32px",
-              textAlign: "center",
-              color: "#94a3b8",
-              cursor: "not-allowed",
-            }}
-          >
-            🎤
-          </button>
-
-          {/* Send button */}
-          <button
-            type="button"
-            onClick={handleUnifiedSubmit}
-            disabled={chatLoading || uploadLoading || (!prompt && !filename)}
-            style={{
-              width: 42,
-              height: 34,
-              borderRadius: "9999px",
-              border: "1px solid #e5e7eb",
-              background: chatLoading ? "#e5e7eb" : "#111827",
-              color: chatLoading ? "#6b7280" : "#fff",
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: chatLoading ? "wait" : "pointer",
-            }}
-          >
-            {chatLoading ? "..." : "Send"}
-          </button>
-        </div>
-
-        {(uploadError || imageRecognitionError) && (
-          <div style={{ marginTop: 8, fontSize: 12, color: "#b91c1c" }}>
-            {uploadError || imageRecognitionError}
-          </div>
-        )}
-      </div>
-      {/* Recognition Results */}
-      <section
-        style={{
-          marginTop: "20px",
-          marginBottom: "30px",
-          borderBottom: "1px solid #ddd",
-          paddingBottom: "20px",
-        }}
-      >
-        <h2>Image Recognition</h2>
-        <p style={{ color: "#666", fontSize: "14px" }}>
-          Analyzes what&#39;s in an image
-        </p>
-        <ResultsDisplay
-          result={imageRecognitionResponse}
-          error={imageRecognitionError}
-          title="Recognition Results"
-        />
-      </section>
       {/* OCR Section (left as a separate panel if you still want it) */}
       <section style={{ marginBottom: "30px" }}>
         <h2>OCR (Optical Character Recognition)</h2>
@@ -500,22 +355,6 @@ export default function GeminiPage() {
               />
             </div>
 
-            <div style={{ flex: 1, minWidth: 260 }}>
-              <label
-                style={{
-                  display: "block",
-                  fontSize: 12,
-                  color: "#555",
-                  marginBottom: 6,
-                }}
-              >
-                Or type image filename
-              </label>
-              <FileNameInput
-                value={manualFilename}
-                onChange={setManualFilename}
-              />
-            </div>
           </div>
 
           <div
@@ -551,6 +390,54 @@ export default function GeminiPage() {
           error={ocrError}
           title="OCR Results"
         />
+
+        {/* New Section for Adding Items */}
+        <div style={{ marginTop: "20px" }}>
+          <h3>Add Additional Items</h3>
+          <input
+            type="text"
+            value={userInput}
+            onChange={(e) => setUserInput(e.target.value)}
+            placeholder="ItemName Price PHP"
+            style={{
+              padding: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              width: "100%",
+              marginBottom: "10px",
+            }}
+          />
+          <button
+            onClick={handleAddItem}
+            style={{
+              padding: "10px 20px",
+              backgroundColor: "#4CAF50",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Add Item
+          </button>
+        </div>
+
+        {/* Display Updated OCR Result */}
+        {updatedOCRResult && (
+          <div style={{ marginTop: "20px" }}>
+            <h3>Updated OCR Result</h3>
+            <pre
+              style={{
+                background: "#f4f4f4",
+                padding: "10px",
+                borderRadius: "4px",
+                overflowX: "auto",
+              }}
+            >
+              {JSON.stringify(updatedOCRResult, null, 2)}
+            </pre>
+          </div>
+        )}
       </section>
     </div>
   );
