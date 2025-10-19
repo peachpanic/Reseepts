@@ -1,19 +1,4 @@
-/**
- * Image utility functions for processing and validation
- */
 
-export interface ImageFile {
-  name: string;
-  size: number;
-  type: string;
-}
-
-export interface UploadResult {
-  success: boolean;
-  filename?: string;
-  error?: string;
-  message?: string;
-}
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
