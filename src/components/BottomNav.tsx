@@ -1,6 +1,7 @@
 "use client";
 
 import { ChartPie, House, User, WalletMinimal } from "lucide-react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import React from "react";
 
@@ -16,6 +17,12 @@ const BottomNav = () => {
     { icon: <WalletMinimal />, route: "/budget" },
     { icon: <User />, route: "/account" },
   ];
+
+  const { data: session, status } = useSession();
+  
+  if (status !== "authenticated") {
+    return null
+  }
 
   return (
     <div className="grid grid-cols-4 items-center sticky bottom-0 rounded-t-md shadow-2xl">
