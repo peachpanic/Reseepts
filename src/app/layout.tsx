@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 import BottomNav from "@/components/BottomNav";
-import QueryProvider from "@/components/Provider/QueryProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +32,6 @@ export default function RootLayout({
           <Providers>
             <div className="grid grid-rows-[1fr_auto]">
               <div className="min-h-screen">{children}</div>
-              <BottomNav />
             </div>
           </Providers>
 
