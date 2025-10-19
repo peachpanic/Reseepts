@@ -13,7 +13,7 @@ const BottomNav = () => {
   const navRoutes: NavRoutes[] = [
     { icon: <House />, route: "/home" },
     { icon: <ChartPie />, route: "/insight" },
-    { icon: <WalletMinimal />, route: "/budget" },
+    { icon: <WalletMinimal />, route: "/expenses" },
     { icon: <User />, route: "/account" },
   ];
 
