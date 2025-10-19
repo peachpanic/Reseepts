@@ -215,7 +215,9 @@ Important rules:
 2) NEVER return category:null. If you cannot determine a precise category, return "Other".
 3) If an item name clearly indicates food (apple, orange, banana, gatorade, juice, milk, bread, rice, etc.), set category to "Food".
 4) Provide explicit examples: e.g. "apple" -> "Food", "gatorade" -> "Food", "t-shirt" -> "Clothing", "push pins" -> "Office Supplies".
-5) Output only the complete JSON object and nothing else.`;
+5) Output only the complete JSON object and nothing else.
+6) **CRITICAL: After adding, removing, or modifying any line_items, you MUST recalculate the top-level "amount" field as the SUM of all line_items' total_price values.**
+7) Example: If line_items are [{"total_price": 100}, {"total_price": 50}], then "amount" must be 150.`;
 
       const userMessage = `Current expense data:\n${globalThis.JSON.stringify(
         base,
