@@ -2,7 +2,7 @@
 
 import ExpenseItem from "@/components/homepage/ExpenseItem";
 import Link from "next/link";
-import { useExpenses } from "@/hooks/useExpenses";
+import { useExpenses } from "@/hooks/useTransaction";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

@@ -20,6 +20,7 @@ export interface Transaction {
   emotion_tag: string;
   expense_date: Date;
   created_at: Date;
+  Transaction_items?: TransactionItem[];
 }
 
 export interface TransactionItem {
