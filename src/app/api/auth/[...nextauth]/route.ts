@@ -1,5 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+
 import { google } from "googleapis";
 import { supabase } from "@/lib/supabase";
 
@@ -35,6 +37,8 @@ async function refreshAccessToken(token: any) {
   }
 }
 
+// TODO: add email & pass sign-in provider
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -53,6 +57,49 @@ export const authOptions: NextAuthOptions = {
             "https://www.googleapis.com/auth/calendar.readonly",
           ].join(" "),
         },
+      },
+    }),
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "email", placeholder: "your@email.com" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("Email and password are required");
+        }
+
+        try {
+          // Call your sign-in API
+          const res = await fetch(`${process.env.NEXTAUTH_URL}/api/signIn`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || "Invalid credentials");
+          }
+
+          // Return user object that will be stored in the JWT
+          return {
+            id: data.user.user_id.toString(),
+            email: data.user.email,
+            name: data.user.full_name,
+            schoolId: data.user.school_id,
+            allowance: data.user.allowance,
+            savingsGoal: data.user.savings_goal,
+          };
+        } catch (error) {
+          console.error("Authorization error:", error);
+          return null;
+        }
       },
     }),
   ],
