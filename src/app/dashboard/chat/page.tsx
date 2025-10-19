@@ -4,10 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useOCR } from "@/hooks/useOCR";
 import { FileUploadInput } from "@/components/FileUploadInput";
-import { FileNameInput } from "@/components/FileNameInput";
 import { OCRButton } from "@/components/OCRButton";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
-import Image from "next/image";
 
 // Helper: remove Markdown code fences (e.g., ```text ... ```) and trim
 function stripCodeFences(text: string): string {
@@ -80,7 +78,7 @@ function extractTextFromResponse(data: unknown): string {
 
     // Fallback: stringify
     return stripCodeFences(
-      typeof data === "string" ? data : JSON.stringify(data, null, 2)
+      typeof data === "string" ? data : globalThis.JSON.stringify(data, null, 2)
     );
   } catch {
     return "";
@@ -94,7 +92,6 @@ export default function GeminiPage() {
   const [imageRecognitionError, setImageRecognitionError] = useState<
     string | null
   >(null);
-
   const {
     filename,
     loading: uploadLoading,
@@ -131,7 +128,7 @@ export default function GeminiPage() {
         const res = await fetch("/api/gemini", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+          body: globalThis.JSON.stringify({
             model: "google/gemini-2.0-flash-001",
             messages: [
               {
@@ -168,7 +165,9 @@ export default function GeminiPage() {
 
     try {
       await performOCROnImage(targetFilename);
-      setImageRecognitionResponse(JSON.stringify(ocrResult, null, 2));
+      setImageRecognitionResponse(
+        globalThis.JSON.stringify(ocrResult, null, 2)
+      );
     } catch (error) {
       setImageRecognitionError((error as Error).message);
     }
@@ -245,7 +244,7 @@ export default function GeminiPage() {
       const res = await fetch("/api/gemini", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: globalThis.JSON.stringify({
           model: "google/gemini-2.0-flash-001",
           messages: [
             {
@@ -273,36 +272,117 @@ export default function GeminiPage() {
 
   // Ensure ocrResult is parsed as JSON
   const parsedOCRResult =
-    typeof ocrResult === "string" ? JSON.parse(ocrResult) : ocrResult;
+    typeof ocrResult === "string"
+      ? globalThis.JSON.parse(ocrResult)
+      : ocrResult;
 
-  // Function to handle adding user input to OCR result
-  const handleAddItem = () => {
-    if (!parsedOCRResult || !userInput.trim()) return;
-
-    const parsedInput = userInput.match(/^(.*)\s+(\d+)\s*PHP$/i);
-    if (!parsedInput) {
-      alert("Invalid format. Use 'ItemName Price PHP'.");
+  // Function to send a chat completion request to the assistant to add items
+  // The assistant is expected to return the full updated OCR JSON (only JSON)
+  const handleChatSubmit = async () => {
+    if (!parsedOCRResult) {
+      alert("No OCR result to augment. Perform OCR first.");
       return;
     }
 
-    const [_, itemName, price] = parsedInput;
-    const priceNumber = parseFloat(price);
+    if (!userInput.trim()) return;
 
-    const newItem = {
-      item_name: itemName,
-      quantity: 1,
-      unit_price: priceNumber,
-      total_price: priceNumber,
-    };
+    setChatLoading(true);
+    setImageRecognitionError(null);
 
-    const updatedResult = {
-      ...parsedOCRResult,
-      amount: (parsedOCRResult.amount || 0) + priceNumber,
-      line_items: [...(parsedOCRResult.line_items || []), newItem],
-    };
+    try {
+      // Use the most recent result as the base (preserve prior assistant edits)
+      const base = updatedOCRResult ?? parsedOCRResult;
 
-    setUpdatedOCRResult(updatedResult);
-    setUserInput("");
+      const categoriesList = [
+        "Food",
+        "Travel",
+        "Office Supplies",
+        "Entertainment",
+        "Utilities",
+        "Healthcare",
+        "Housing/Rent",
+        "Mortgage",
+        "Transportation",
+        "Auto/Car Payment",
+        "Insurance",
+        "Personal Care",
+        "Clothing",
+        "Education",
+        "Debt Repayment",
+        "Savings & Investments",
+        "Gifts & Donations",
+        "Pets",
+        "Appliances",
+        "Other",
+      ];
+
+      const systemInstruction = `You are an assistant that receives an existing expense JSON and a short user instruction.
+YOU MUST return ONLY a single valid JSON object (no markdown, no code fences, no explanation).
+The JSON must match the same schema. Numeric fields must be numbers (not strings).
+
+Important rules:
+1) The 'category' field inside every line_items entry MUST be exactly one of: ${JSON.stringify(
+        categoriesList
+      )}.
+2) NEVER return category:null. If you cannot determine a precise category, return "Other".
+3) If an item name clearly indicates food (apple, orange, banana, gatorade, juice, milk, bread, rice, etc.), set category to "Food".
+4) Provide explicit examples: e.g. "apple" -> "Food", "gatorade" -> "Food", "t-shirt" -> "Clothing", "push pins" -> "Office Supplies".
+5) Output only the complete JSON object and nothing else.
+
+Example input/expectation:
+Input JSON: ${globalThis.JSON.stringify(base)}
+Instruction: Add: apple 2x 200
+
+Expected: a complete JSON object where the added or updated line_items have category "Food".`;
+
+      const userMessage = `Current expense data:\n${globalThis.JSON.stringify(
+        base,
+        null,
+        2
+      )}\n\nUser instruction: ${userInput}`;
+
+      const res = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: globalThis.JSON.stringify({
+          model: "google/gemini-2.0-flash-001",
+          messages: [
+            {
+              role: "system",
+              content: [{ type: "text", text: systemInstruction }],
+            },
+            { role: "user", content: [{ type: "text", text: userMessage }] },
+          ],
+        }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Request failed (${res.status}): ${errText}`);
+      }
+
+      const data = await res.json();
+      const assistantText = extractTextFromResponse(data);
+
+      // Try to parse assistantText as JSON — assistant should return a full JSON object
+      let parsed;
+      try {
+        parsed = globalThis.JSON.parse(assistantText);
+      } catch (err) {
+        // If parsing fails, show raw assistant text for debugging
+        throw new Error(
+          "Assistant returned non-JSON response: " + assistantText
+        );
+      }
+
+      // Trust the AI completely - no client-side merging
+      setUpdatedOCRResult(parsed);
+      setUserInput("");
+    } catch (err) {
+      setImageRecognitionError((err as Error).message);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   return (
@@ -354,7 +434,6 @@ export default function GeminiPage() {
                 error={uploadError}
               />
             </div>
-
           </div>
 
           <div
@@ -393,33 +472,54 @@ export default function GeminiPage() {
 
         {/* New Section for Adding Items */}
         <div style={{ marginTop: "20px" }}>
-          <h3>Add Additional Items</h3>
-          <input
-            type="text"
+          <h3>Chat to Augment OCR Result</h3>
+          <p style={{ color: "#666", fontSize: 14 }}>
+            Tell the assistant what to add or change. It will return the full
+            updated OCR JSON which will replace the current result.
+          </p>
+          <textarea
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
-            placeholder="ItemName Price PHP"
+            placeholder="e.g. Add: Apple 2x 200 or Remove: Apple"
+            rows={3}
             style={{
               padding: "8px",
               border: "1px solid #ccc",
               borderRadius: "4px",
               width: "100%",
               marginBottom: "10px",
+              resize: "vertical",
             }}
           />
-          <button
-            onClick={handleAddItem}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "#4CAF50",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: "pointer",
-            }}
-          >
-            Add Item
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={handleChatSubmit}
+              disabled={chatLoading}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#2563eb",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: chatLoading ? "wait" : "pointer",
+              }}
+            >
+              {chatLoading ? "Processing..." : "Send to Assistant"}
+            </button>
+            <button
+              onClick={() => setUserInput("")}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#e5e7eb",
+                color: "#111827",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
         {/* Display Updated OCR Result */}
@@ -434,7 +534,7 @@ export default function GeminiPage() {
                 overflowX: "auto",
               }}
             >
-              {JSON.stringify(updatedOCRResult, null, 2)}
+              {globalThis.JSON.stringify(updatedOCRResult, null, 2)}
             </pre>
           </div>
         )}
