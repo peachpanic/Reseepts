@@ -105,5 +105,5 @@ export const useCategories = () => {
     deleteCategory,
   };
 };
-export { Category };
+
 
