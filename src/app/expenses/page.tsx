@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import ExpenseItem from "@/components/expenses/ExpenseItem";
 
 export default function ExpensePage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"expenses" | "bills">("expenses");
-  const [screen, setScreen] = useState<"main" | "upload">("main");
+  const [screen, setScreen] = useState<"main" | "upload" | "result">("main");
+  const [isLoading, setIsLoading] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -51,10 +54,16 @@ export default function ExpensePage() {
 
   const handleUpload = () => {
     if (capturedImage) {
+      setIsLoading(true);
       // TODO: Send capturedImage to API or process it
       console.log("Uploading captured image:", capturedImage);
-      setScreen("main");
-      setCapturedImage(null);
+
+      // Wait 5 seconds then navigate to results
+      setTimeout(() => {
+        setIsLoading(false);
+        setScreen("result");
+        setCapturedImage(null);
+      }, 5000);
     }
   };
 
@@ -143,7 +152,7 @@ export default function ExpensePage() {
       <div className="bg-white rounded-lg p-4 min-h-screen">
         <div className="relative min-h-[300px]">
           <AnimatePresence mode="wait">
-            {screen === "main" && (
+            {screen === "main" && !isLoading && (
               <motion.div
                 key="main"
                 initial={{ opacity: 0, x: 40 }}
@@ -196,7 +205,7 @@ export default function ExpensePage() {
               </motion.div>
             )}
 
-            {screen === "upload" && (
+            {screen === "upload" && !isLoading && (
               <motion.div
                 key="upload"
                 initial={{ opacity: 0, x: 40 }}
@@ -289,6 +298,129 @@ export default function ExpensePage() {
                 >
                   Cancel
                 </button>
+              </motion.div>
+            )}
+
+            {screen === "result" && !isLoading && (
+              <motion.div
+                key="result"
+                initial={{ opacity: 0, x: 40 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -40 }}
+                transition={{ duration: 0.3 }}
+                className="w-full flex flex-col bg-white"
+              >
+                <h2 className="text-2xl font-semibold mb-6 text-black text-center">
+                  Receipt Summary
+                </h2>
+
+                {/* Receipt Preview */}
+                <div className="bg-gray-100 rounded-lg p-4 mb-6 max-h-48 overflow-y-auto">
+                  {capturedImage && (
+                    <img
+                      src={capturedImage}
+                      alt="Receipt Preview"
+                      className="w-full object-contain rounded-lg"
+                    />
+                  )}
+                </div>
+
+                {/* Transcribed Items */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-black mb-4">
+                    Detected Items
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div>
+                        <p className="font-medium text-black">Item 1</p>
+                        <p className="text-sm text-gray-500">Category: Food</p>
+                      </div>
+                      <p className="font-semibold text-[#429690]">$25.50</p>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div>
+                        <p className="font-medium text-black">Item 2</p>
+                        <p className="text-sm text-gray-500">
+                          Category: Beverages
+                        </p>
+                      </div>
+                      <p className="font-semibold text-[#429690]">$8.99</p>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div>
+                        <p className="font-medium text-black">Item 3</p>
+                        <p className="text-sm text-gray-500">
+                          Category: Snacks
+                        </p>
+                      </div>
+                      <p className="font-semibold text-[#429690]">$12.75</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total */}
+                <div className="bg-[#429690] text-white rounded-lg p-4 mb-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-semibold">Total Amount</span>
+                    <span className="text-2xl font-bold">$47.24</span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col gap-3">
+                  <button
+                    className="w-full border-2 border-[#429690] text-[#429690] font-semibold py-3 rounded-lg hover:bg-[#429690] hover:text-white transition-colors"
+                    onClick={() => {
+                      setScreen("main");
+                      setCapturedImage(null);
+                    }}
+                  >
+                    Confirm & Save
+                  </button>
+                  <button
+                    className="w-full border border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-100 transition-colors"
+                    onClick={() => setScreen("upload")}
+                  >
+                    Back to Upload
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {isLoading && (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="w-full flex flex-col items-center justify-center min-h-[400px] bg-white"
+              >
+                <div className="text-center">
+                  <div className="mb-6">
+                    <div className="inline-flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#429690] border-t-transparent"></div>
+                    </div>
+                  </div>
+                  <h2 className="text-2xl font-semibold text-black mb-2">
+                    Scanning Receipt
+                  </h2>
+                  <p className="text-gray-500 mb-8">
+                    Please wait while we process your receipt...
+                  </p>
+                  <div className="flex justify-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-[#429690] animate-bounce"></div>
+                    <div
+                      className="w-2 h-2 rounded-full bg-[#429690] animate-bounce"
+                      style={{ animationDelay: "0.2s" }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 rounded-full bg-[#429690] animate-bounce"
+                      style={{ animationDelay: "0.4s" }}
+                    ></div>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
