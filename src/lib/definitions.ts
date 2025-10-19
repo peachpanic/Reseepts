@@ -25,7 +25,7 @@ export interface Transaction {
 
 export interface TransactionItem {
   id: number;
-  transaction_id: number;
+  expense_id: number;
   item_name: string;
   created_at: Date;
   subcategory: string;

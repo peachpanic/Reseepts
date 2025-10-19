@@ -14,24 +14,21 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Get transactions and include their related transaction_items
-    // This relies on a foreign key relationship in the DB (transactions -> transaction_items).
-    // Supabase lets you select related rows using the related table name as a field: transaction_items(*)
-    const { data: transactions, error } = await supabase
-      .from("transactions")
-      .select(`*, transaction_item(*)`)
-      .eq("user_id", id);
+      // Query a view that returns transactions with their items aggregated as
+      // `transaction_item`. Create the view in your DB (SQL provided below).
+      const { data: transactions, error } = await supabase
+        .from("transactions")
+        .select("*, transaction_item:transaction_item!expense_id(*)")
+        .eq("user_id", id);
 
-    // Handle error
+    console.log("Fetched transactions:", transactions);
+
     if (error) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
       });
     }
 
-    console.log("Fetched transactions:", transactions);
-
-    // Success
     return new Response(JSON.stringify({ transactions }), { status: 200 });
   } catch (err) {
     console.error("Error fetching expenses:", err);
