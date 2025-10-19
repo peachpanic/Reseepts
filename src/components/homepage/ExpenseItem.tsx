@@ -14,7 +14,7 @@ export default function ExpenseItem({ expense }: { expense: Expense }) {
   };
 
   return (
-    <div className="flex flex-row py-4 px-2 border-black justify-between">
+    <div className="flex flex-row py-4 px-2 justify-between hover:bg-gray-100">
       <div className="flex flex-col">
         <span className="font-medium">{expense.expense_id}</span>
         <span className="text-gray-600 text-sm">

@@ -5,8 +5,12 @@ import { useTopExpenses } from "@/hooks/useExpenses";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function TopSpendList() {
-  const { data: expenses, isLoading } = useTopExpenses("1");
+type TopSpendProps = {
+  period: string
+}
+
+export function TopSpendList({ period = "day" }: TopSpendProps) {
+  const { data: expenses, isLoading } = useTopExpenses("1", period);
   if (isLoading) {
     return (
       <>
