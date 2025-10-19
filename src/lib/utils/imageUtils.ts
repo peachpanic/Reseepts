@@ -1,7 +1,3 @@
-/**
- * Image utility functions for processing and validation
- */
-
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
   "image/png",

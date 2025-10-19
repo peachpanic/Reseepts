@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
+import GoogleButton from "@/components/GoogleButton";
 
 type EventItem = {
   id?: string;
@@ -38,24 +39,7 @@ export default function Home() {
     <div className="min-h-screen p-8 flex flex-col gap-6">
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Google Calendar Demo</h1>
-        {status === "authenticated" ? (
-          <div className="flex items-center gap-3">
-            <span className="text-sm">{session?.user?.email}</span>
-            <button
-              className="rounded border px-3 py-1 text-sm"
-              onClick={() => signOut()}
-            >
-              Sign out
-            </button>
-          </div>
-        ) : (
-          <button
-            className="rounded border px-3 py-1 text-sm"
-            onClick={() => signIn("google")}
-          >
-            Sign in with Google
-          </button>
-        )}
+        <GoogleButton />
       </header>
 
       {status === "loading" && <p>Loading session…</p>}

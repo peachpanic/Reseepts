@@ -1,3 +1,13 @@
+export interface User {
+  user_id: number;
+  full_name: string;
+  email: string;
+  password_hash: string;
+  school_id: string;
+  allowance: number;
+  savings_goal: number;
+  created_at: string;
+}
 export interface Expense {
   expense_id: number;
   user_id: number;
