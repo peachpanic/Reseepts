@@ -87,19 +87,13 @@ export async function POST(request: NextRequest) {
               {
                 type: 'image_url',
                 image_url: {
-                  url: `data:${mediaType};base64,${base64Image}`
-                }
+                  url: `data:${mediaType};base64,${base64Image}`,
+                },
               },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:${mediaType};base64,${base64Image}`
-                }
-              }
-            ]
-          }
-        ]
-      })
+            ],
+          },
+        ],
+      }),
     });
 
     const data = await response.json();
