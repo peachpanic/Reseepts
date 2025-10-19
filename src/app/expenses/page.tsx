@@ -171,7 +171,7 @@ export default function ExpensePage() {
           <i className="bx bx-chevron-left"></i>{" "}
         </button>
         <h2 className="text-white text-lg">Expenses</h2>
-        <button onClick={() => setIsCategoryDialogOpen(true)} className="cursor-pointer">
+        <button onClick={() => setIsCategoryDialogOpen(true)} className="cursor-ponter">
           Category
         </button>
       </div>

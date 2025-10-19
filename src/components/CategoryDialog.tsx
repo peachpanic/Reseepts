@@ -50,10 +50,10 @@ export default function CategoryDialog({ isOpen, onClose }: CategoryDialogProps)
     deleteCategory,
   } = useCategories();
 
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({ name: "", icon: "🏷️" });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch categories when dialog opens
@@ -67,6 +67,24 @@ export default function CategoryDialog({ isOpen, onClose }: CategoryDialogProps)
     await fetchCategories();
   };
 
+  const confirmDelete = async () => {
+    if (!categoryToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteCategory(categoryToDelete);
+      setDeleteDialogOpen(false);
+      setCategoryToDelete(null);
+      setFormData({ name: "", icon: "🏷️" });
+      setEditingId(null);
+      await fetchCategories();
+    } catch (error) {
+      console.error("Failed to delete category:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
@@ -75,6 +93,7 @@ export default function CategoryDialog({ isOpen, onClose }: CategoryDialogProps)
       await createCategory({
         category_name: formData.name,
         icon: formData.icon,
+        user_id: 0, // This will be set by the API based on the session
       });
       setFormData({ name: "", icon: "🏷️" });
     } catch (err) {
@@ -82,7 +101,7 @@ export default function CategoryDialog({ isOpen, onClose }: CategoryDialogProps)
     }
   };
 
-  const handleUpdate = async (id: string) => {
+  const handleUpdate = async (id: number) => {
     if (!formData.name.trim()) return;
 
     try {
@@ -97,24 +116,9 @@ export default function CategoryDialog({ isOpen, onClose }: CategoryDialogProps)
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: number) => {
     setCategoryToDelete(id);
     setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (categoryToDelete) {
-      setIsDeleting(true);
-      try {
-        await deleteCategory(categoryToDelete);
-        setDeleteDialogOpen(false);
-        setCategoryToDelete(null);
-      } catch (err) {
-        console.error("Failed to delete category:", err);
-      } finally {
-        setIsDeleting(false);
-      }
-    }
   };
 
   const startEdit = (category: Category) => {
@@ -122,7 +126,7 @@ export default function CategoryDialog({ isOpen, onClose }: CategoryDialogProps)
       name: category.category_name,
       icon: category.icon,
     });
-    setEditingId(category.category_id || "");
+    setEditingId(category.category_id);
   };
 
   const cancelEdit = () => {
@@ -297,9 +301,7 @@ export default function CategoryDialog({ isOpen, onClose }: CategoryDialogProps)
                               Edit
                             </button>
                             <button
-                              onClick={() =>
-                                handleDelete(category.category_id || "")
-                              }
+                              onClick={() => handleDelete(category.category_id)}
                               disabled={isDeleting}
                               className="px-3 py-1 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                               title="Delete"
@@ -346,11 +348,11 @@ export default function CategoryDialog({ isOpen, onClose }: CategoryDialogProps)
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isDeleting} className="cursor-pointer">Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={confirmDelete}
             disabled={isDeleting}
-            className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isDeleting ? (
               <span className="flex items-center gap-2">

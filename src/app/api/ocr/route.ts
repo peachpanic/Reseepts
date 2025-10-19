@@ -108,6 +108,7 @@ export async function POST(request: NextRequest) {
                     '  "user_id": <integer>,\n' +
                     '  "amount": <numeric>,\n' +
                     '  "description": "<merchant or summary>",\n' +
+                    '  "category": "<category from the provided list>",\n' +
                     '  "payment_method": "<cash | credit card | debit | other>",\n' +
                     '  "expense_date": "YYYY-MM-DD",\n' +
                     '  "created_at": "YYYY-MM-DDTHH:MM:SSZ",\n' +
