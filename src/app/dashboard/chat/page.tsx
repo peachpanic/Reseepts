@@ -209,15 +209,17 @@ YOU MUST return ONLY a single valid JSON object (no markdown, no code fences, no
 The JSON must match the same schema. Numeric fields must be numbers (not strings).
 
 Important rules:
-1) The 'category' field inside every line_items entry MUST be exactly one of: ${JSON.stringify(
+1) The 'sub_category' field inside every line_items entry MUST be exactly one of: ${JSON.stringify(
         categoriesList
       )}.
-2) NEVER return category:null. If you cannot determine a precise category, return "Other".
-3) If an item name clearly indicates food (apple, orange, banana, gatorade, juice, milk, bread, rice, etc.), set category to "Food".
-4) Provide explicit examples: e.g. "apple" -> "Food", "gatorade" -> "Food", "t-shirt" -> "Clothing", "push pins" -> "Office Supplies".
+2) NEVER return sub_category:null. If you cannot determine a precise sub_category, return "Other".
+3) If an item name clearly indicates food (apple, orange, banana, gatorade, juice, milk, bread, rice, etc.), set sub_category to "Food".
+4) Provide explicit examples: e.g. "apple" -> "Food", "gatorade" -> "Food", "t-shirt" -> "Clothing", "push pins" -> "Office Supplies", "biogesic" -> "Healthcare".
 5) Output only the complete JSON object and nothing else.
 6) **CRITICAL: After adding, removing, or modifying any line_items, you MUST recalculate the top-level "amount" field as the SUM of all line_items' total_price values.**
-7) Example: If line_items are [{"total_price": 100}, {"total_price": 50}], then "amount" must be 150.`;
+7) Example: If line_items are [{"total_price": 100}, {"total_price": 50}], then "amount" must be 150.
+8) Keep the top-level "main_category" field as is unless the user explicitly asks to change it.
+9) Do NOT add extra fields like "category" to line_items. Only use the fields that exist: item_name, sub_category, quantity, unit_price, total_price.`;
 
       const userMessage = `Current expense data:\n${globalThis.JSON.stringify(
         base,
