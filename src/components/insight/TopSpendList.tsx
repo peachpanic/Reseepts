@@ -3,8 +3,10 @@
 import ExpenseItem from "@/components/homepage/ExpenseItem";
 import Link from "next/link";
 import { useExpenses } from "@/hooks/useExpenses";
+import { ArrowUpDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export default function ExpenseList() {
+export function TopSpendList() {
   const { data: expenses, isLoading } = useExpenses("1");
   if (isLoading) {
     return (
@@ -16,9 +18,17 @@ export default function ExpenseList() {
   return (
     <>
       <div className="flex flex-row justify-between items-center p-4">
-        <h1 className="text-xl font-semibold">Expense History</h1>
+        <h1 className="text-xl font-semibold">Top Spending</h1>
         <span>
-          <Link href="/expenses">See all</Link>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              console.log("ArrowUpDown clicked!");
+            }}
+          >
+            <ArrowUpDown />
+          </Button>
         </span>
       </div>
       <div className="mx-4">
