@@ -1,13 +1,12 @@
 "use client";
 
 import ExpenseItem from "@/components/homepage/ExpenseItem";
-import Link from "next/link";
-import { useExpenses } from "@/hooks/useExpenses";
+import { useTopExpenses } from "@/hooks/useExpenses";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function TopSpendList() {
-  const { data: expenses, isLoading } = useExpenses("1");
+  const { data: expenses, isLoading } = useTopExpenses("1");
   if (isLoading) {
     return (
       <>
