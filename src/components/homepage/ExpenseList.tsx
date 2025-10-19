@@ -134,7 +134,7 @@ export function ExpenseList() {
           <Link href="/expenses">See all</Link>
         </span>
       </div>
-      <div>
+      <div className="mx-4">
         {expenses.map((expense) => (
           <ExpenseItem key={expense.expense_id} expense={expense} />
         ))}
