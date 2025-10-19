@@ -62,7 +62,6 @@ export default function ExpensePage() {
       setTimeout(() => {
         setIsLoading(false);
         setScreen("result");
-        setCapturedImage(null);
       }, 5000);
     }
   };
