@@ -74,10 +74,12 @@ export const authOptions: NextAuthOptions = {
           const { data: userData, error: userError } = await supabase
             .from("users")
             .select("*")
+            .eq("email", credentials.email)
             .single();
 
           if (userError) {
-            throw new Error(userError.message);
+            console.error("Supabase user fetch error:", userError);
+            throw new Error("Unknown user");
           }
           if (!userData) {
             throw new Error("User not found");
