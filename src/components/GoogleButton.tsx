@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import React from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
@@ -37,7 +37,11 @@ const GoogleButton = () => {
 
   return (
     <button
-      onClick={() => signIn("google")}
+      onClick={() =>
+        signIn("google", {
+          callbackUrl: "/home",
+        })
+      }
       className="flex items-center justify-center gap-3 px-8 py-3 bg-white border-2 border-gray-300 rounded-full font-semibold text-gray-800 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm hover:shadow-md"
     >
       <GoogleIcon />

@@ -17,7 +17,7 @@ async function fetchExpenses(userId: string): Promise<Expense[]> {
   return json.expenses as Expense[];
 }
 
-export function useExpenses(userId?: string) {
+export function useExpenses(userId: string | null) {
   console.log("useExpenses called with userId:", userId);
   return useQuery({
     queryKey: ["expenses", userId],
