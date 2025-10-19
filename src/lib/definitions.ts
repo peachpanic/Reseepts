@@ -9,7 +9,7 @@ export interface User {
   created_at: string;
 }
 
-export interface Expense {
+export interface Transaction {
   expense_id: number;
   user_id: number;
   category_id: number;
@@ -20,6 +20,16 @@ export interface Expense {
   emotion_tag: string;
   expense_date: Date;
   created_at: Date;
+  Transaction_items?: TransactionItem[];
+}
+
+export interface TransactionItem {
+  id: number;
+  expense_id: number;
+  item_name: string;
+  created_at: Date;
+  subcategory: string;
+  amount: number;
 }
 
 export interface Category {

@@ -1,8 +1,8 @@
 "use client";
 
-import { Expense } from "@/lib/definitions";
+import { Transaction } from "@/lib/definitions";
 
-export default function ExpenseItem({ expense }: { expense: Expense }) {
+export default function ExpenseItem({ expense }: { expense: Transaction }) {
   // Convert expense_date to Date object if it's a string
   const formatDate = (date: Date | string) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
@@ -14,7 +14,7 @@ export default function ExpenseItem({ expense }: { expense: Expense }) {
   };
 
   return (
-    <div className="flex flex-row py-4 px-2 border-black justify-between">
+    <div className="flex flex-row py-4 px-2 justify-between hover:bg-gray-100">
       <div className="flex flex-col">
         <span className="font-medium">{expense.expense_id}</span>
         <span className="text-gray-600 text-sm">
