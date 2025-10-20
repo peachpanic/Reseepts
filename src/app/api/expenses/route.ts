@@ -53,10 +53,10 @@
 //     query = query.order("expense_date", { ascending: false });
 
 //       // Query a view that returns transactions with their items aggregated as
-//       // `transaction_item`. Create the view in your DB (SQL provided below).
+//       // transaction_item. Create the view in your DB (SQL provided below).
 //       const { data: transactions, error } = await supabase
 //         .from("transactions")
-//         .select("*, transaction_item:transaction_item!expense_id(*)")
+//         .select(", transaction_item:transaction_item!expense_id()")
 //         .eq("user_id", id);
 
 //     console.log("Fetched transactions:", transactions);
@@ -198,60 +198,57 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { transaction } = body;
+    let { transaction, transaction_items } = body;
+    console.log(
+      "Received transaction to add:",
+      JSON.stringify(transaction, null, 2)
+    );
 
-    console.log("Received transaction to add:", JSON.stringify(transaction, null, 2));
+    if (!transaction) {
+      return new Response(
+        JSON.stringify({ error: "transaction is required" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
 
-    // Insert the parent transaction
-    const { data: txData, error: txError } = await supabase
-      .from("transactions")
-      .insert([{
-        user_id: transaction.user_id,
-        category_id: transaction.category_id,
-        amount: transaction.amount,
-        description: transaction.description,
-        payment_method: transaction.payment_method,
-        expense_date: transaction.expense_date,
-        created_at: transaction.created_at
-      }])
-      .select("expense_id")
-      .single();
+    // Prefer explicit top-level transaction_items, otherwise accept transaction.line_items
+    const itemsToAttach =
+      Array.isArray(transaction_items) && transaction_items.length > 0
+        ? transaction_items
+        : Array.isArray(transaction?.line_items) &&
+          transaction.line_items.length > 0
+        ? transaction.line_items
+        : null;
 
-    if (txError || !txData) {
-      return new Response(JSON.stringify({ error: txError?.message || "Failed to insert transaction" }), {
+    // ensure we never pass line_items to a plain insert
+    if (transaction?.line_items) delete transaction.line_items;
+
+    // Use RPC to perform atomic insert of transaction and its items
+    const { data, error } = await supabase.rpc(
+      "insert_transaction_with_items",
+      {
+        p_transaction: transaction,
+        p_items: itemsToAttach,
+      }
+    );
+
+    if (error) {
+      console.error("RPC insert_transaction_with_items error:", error);
+      return new Response(JSON.stringify({ error: error.message || error }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const expense_id = txData.expense_id;
-
-    // Insert all items, linking to the new expense_id
-    const itemsToInsert = transaction.transaction_items.map(item => ({
-      expense_id,
-      item_name: item.item_name,
-      subcategory: item.subcategory,
-      amount: item.amount,
-      created_at: item.created_at
-    }));
-
-    const { error: itemsError } = await supabase
-      .from("transaction_item")
-      .insert(itemsToInsert);
-
-    if (itemsError) {
-      return new Response(JSON.stringify({ error: itemsError.message }), {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // Always return the new expense_id
-    return new Response(JSON.stringify({ expense_id }), {
+    return new Response(JSON.stringify(data), {
       status: 201,
       headers: { "Content-Type": "application/json" },
     });
   } catch (err) {
+    console.error("Error in POST /api/expenses (RPC):", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { "Content-Type": "application/json" },

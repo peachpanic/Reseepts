@@ -19,6 +19,26 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [showLoginForm, setShowLoginForm] = useState(true);
 
+  useEffect(() => {
+    const load = async () => {
+      if (status === "authenticated") {
+        setError(null);
+        const res = await fetch("/api/calendar/events");
+        if (!res.ok) {
+          const j = await res.json().catch(() => ({}));
+          setError(j.error || `Failed with ${res.status}`);
+          setEvents(null);
+          return;
+        }
+        const items = (await res.json()) as EventItem[];
+        setEvents(items);
+      } else {
+        setEvents(null);
+      }
+    };
+    load();
+  }, [status]);
+
   return (
     <div className="h-screen overflow-hidden">
       <main className="h-full flex items-center bg-white">
@@ -116,6 +136,20 @@ export default function Home() {
                   </motion.p>
 
                   <div className="flex flex-col items-center gap-4 mt-12">
+                    {/* <motion.button
+                      onClick={() => setShowLoginForm(true)}
+                      className="cursor-pointer not-only-of-type:w-full sm:w-auto bg-white text-teal-600 px-8 py-3 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform transition duration-200"
+                      initial={{ y: 10, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{
+                        duration: 0.6,
+                        ease: "easeOut",
+                        delay: 0.35,
+                      }}
+                    >
+                      Get Started
+                    </motion.button> */}
+
                     <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
@@ -139,7 +173,7 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <div className="lg:bg-white rounded-2xl py-8 px-8 md:py-8 md:px-12 lg:px-20 md:shadow-xl max-w-md mx-auto">
+                <div className="lg:bg-white rounded-2xl py-10 px-20 md:py-8 shadow-xl">
                   <div className="flex items-center justify-center mb-6">
                     <h3 className="text-2xl font-bold text-white md:text-teal-600">
                       Sign in
