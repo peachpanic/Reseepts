@@ -10,14 +10,23 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useInsights } from "@/hooks/useInsights";
+import Link from "next/link";
 
 const ReseeptsInsightsPage = () => {
   const [activeTab, setActiveTab] = useState("insights");
   const { data, isLoading, isError } = useInsights("1");
   return (
     <div className="min-h-screen bg-teal-900">
-      <div className="px-4">
-        <h4 className="text-2xl font-semibold text-white text-center pt-12">Reseepts Insights</h4>
+      <div className="relative flex items-center justify-between px-4 pt-12">
+        <div className="w-10 flex justify-start">
+          <Link href="/insight">
+            <ChevronLeft className="text-white w-5 h-5 cursor-pointer" />
+          </Link>
+        </div>
+        <h4 className="text-2xl font-semibold text-white text-center flex-1">
+          Reseepts Insights
+        </h4>
+        <div className="w-10" /> {/* Empty div for spacing */}
       </div>
 
       {/* Main Content */}
