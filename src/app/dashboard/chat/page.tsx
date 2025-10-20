@@ -86,7 +86,6 @@ function extractTextFromResponse(data: unknown): string {
 }
 
 export default function GeminiPage() {
-  // ✅ prefixed unused states to silence ESLint
   const [_imageRecognitionResponse, setImageRecognitionResponse] = useState<
     string | null
   >(null);
@@ -110,8 +109,12 @@ export default function GeminiPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [updatedOCRResult, setUpdatedOCRResult] = useState(null);
-  const [categories, setCategories] = useState<Array<{ category_id: number; category_name: string }>>([]);
-  const [categoryMapping, setCategoryMapping] = useState<Record<string, number>>({});
+  const [categories, setCategories] = useState<
+    Array<{ category_id: number; category_name: string }>
+  >([]);
+  const [categoryMapping, setCategoryMapping] = useState<
+    Record<string, number>
+  >({});
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -122,10 +125,16 @@ export default function GeminiPage() {
         if (res.ok) {
           const data = await res.json();
           setCategories(data || []);
-          const mapping = data.reduce((acc: Record<string, number>, cat: { category_name: string; category_id: number }) => {
-            acc[cat.category_name] = cat.category_id;
-            return acc;
-          }, {});
+          const mapping = data.reduce(
+            (
+              acc: Record<string, number>,
+              cat: { category_name: string; category_id: number }
+            ) => {
+              acc[cat.category_name] = cat.category_id;
+              return acc;
+            },
+            {}
+          );
           setCategoryMapping(mapping);
         }
       } catch (err) {
@@ -193,7 +202,7 @@ export default function GeminiPage() {
 
   const handleSaveTransaction = async () => {
     const dataToSave = updatedOCRResult ?? parsedOCRResult;
-    
+
     if (!dataToSave) {
       alert("No transaction data to save. Perform OCR first.");
       return;
@@ -218,10 +227,12 @@ export default function GeminiPage() {
       const result = await response.json();
       console.log("Transaction saved:", result);
       console.log("Transaction items:", result.transaction?.transaction_item);
-      
+
       setSaveSuccess(true);
-      alert(`Transaction saved successfully! Expense ID: ${result.transaction?.expense_id}`);
-      
+      alert(
+        `Transaction saved successfully! Expense ID: ${result.transaction?.expense_id}`
+      );
+
       // Update the OCR result with the saved transaction data
       setUpdatedOCRResult(result.transaction);
     } catch (err) {
@@ -247,7 +258,7 @@ export default function GeminiPage() {
     try {
       const base = updatedOCRResult ?? parsedOCRResult;
 
-      const categoriesList = categories.map(cat => cat.category_name);
+      const categoriesList = categories.map((cat) => cat.category_name);
 
       const systemInstruction = `You are an assistant that receives an existing expense JSON and a short user instruction.
 YOU MUST return ONLY a single valid JSON object (no markdown, no code fences, no explanation).
@@ -311,7 +322,9 @@ Important rules:
         parsed = globalThis.JSON.parse(assistantText);
       } catch (err) {
         console.error("JSON parse error: ", err);
-        throw new Error("Assistant returned non-JSON response: " + assistantText);
+        throw new Error(
+          "Assistant returned non-JSON response: " + assistantText
+        );
       }
 
       setUpdatedOCRResult(parsed);
@@ -460,9 +473,7 @@ Important rules:
 
         {(updatedOCRResult || parsedOCRResult) && (
           <div style={{ marginTop: "20px" }}>
-            <h3>
-              {updatedOCRResult ? "Updated OCR Result" : "OCR Result"}
-            </h3>
+            <h3>{updatedOCRResult ? "Updated OCR Result" : "OCR Result"}</h3>
             <pre
               style={{
                 background: "#f4f4f4",
@@ -472,7 +483,11 @@ Important rules:
                 marginBottom: "10px",
               }}
             >
-              {globalThis.JSON.stringify(updatedOCRResult ?? parsedOCRResult, null, 2)}
+              {globalThis.JSON.stringify(
+                updatedOCRResult ?? parsedOCRResult,
+                null,
+                2
+              )}
             </pre>
             <div style={{ display: "flex", gap: 8 }}>
               <button
@@ -488,10 +503,20 @@ Important rules:
                   opacity: saveLoading ? 0.7 : 1,
                 }}
               >
-                {saveLoading ? "Saving..." : saveSuccess ? "✓ Saved!" : "Save to Database"}
+                {saveLoading
+                  ? "Saving..."
+                  : saveSuccess
+                  ? "✓ Saved!"
+                  : "Save to Database"}
               </button>
               {saveSuccess && (
-                <span style={{ color: "#10b981", alignSelf: "center", fontSize: 14 }}>
+                <span
+                  style={{
+                    color: "#10b981",
+                    alignSelf: "center",
+                    fontSize: 14,
+                  }}
+                >
                   Transaction saved with expense_id!
                 </span>
               )}
