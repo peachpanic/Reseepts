@@ -37,8 +37,6 @@ export async function POST(req: Request) {
         amount,
         description,
         payment_method,
-        source,
-        emotion_tag,
         expense_date,
         created_at,
         categories (
@@ -111,15 +109,6 @@ export async function POST(req: Request) {
         (paymentMethodBreakdown[exp.payment_method] || 0) + Number(exp.amount);
     });
 
-    // Group by emotion tag
-    const emotionBreakdown: Record<string, number> = {};
-    expenses.forEach((exp) => {
-      if (exp.emotion_tag) {
-        emotionBreakdown[exp.emotion_tag] =
-          (emotionBreakdown[exp.emotion_tag] || 0) + Number(exp.amount);
-      }
-    });
-
     const topCats = Object.entries(categoryBreakdown)
       .slice(0, 3)
       .map(([cat, d]) => `${cat}: ₱${d.total.toFixed(2)}`)
@@ -163,7 +152,6 @@ export async function POST(req: Request) {
           },
           category_breakdown: categoryBreakdown,
           payment_method_breakdown: paymentMethodBreakdown,
-          emotion_breakdown: emotionBreakdown,
         },
         user_info: {
           allowance: userData.allowance,

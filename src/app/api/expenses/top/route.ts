@@ -48,8 +48,6 @@ export async function GET(req: NextRequest) {
                 amount,
                 description,
                 payment_method,
-                source,
-                emotion_tag,
                 expense_date,
                 created_at,
                 categories (
