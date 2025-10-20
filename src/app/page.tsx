@@ -61,7 +61,7 @@ export default function Home() {
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className=""
+              className="relative z-50"
             >
               {/* <svg
                 width="200"
@@ -103,8 +103,8 @@ export default function Home() {
                 alt="Man"
                 width={400}
                 height={400}
-                sizes="(max-width: 768px) 160px, 384px"
-                className="mb-4 w-52 h-auto md:w-96"
+                sizes="(max-width: 768px) 280px, 384px"
+                className="mb-4 w-85 h-auto md:w-96 relative z-50"
               />
             </motion.div>
 
