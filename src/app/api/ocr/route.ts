@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
                     '      "item_name": "<product/service>",\n' +
                     '      "amount": <numeric>,\n' +
                     '      "subcategory": "<category name from the provided list>",\n' +
-                    '      "expense_id": ' + nextExpenseId + ',\n' +
+                    
                     '      "created_at": "<ISO 8601 timestamp>"\n' +
                     "    }\n" +
                     "  ]\n" +
@@ -155,7 +155,6 @@ export async function POST(request: NextRequest) {
                     "7. The 'amount' in transaction_items is the total price for that line item.\n" +
                     "8. The top-level 'amount' should be the SUM of all transaction_items' amount values.\n" +
                     "9. Set user_id to 1 as placeholder.\n" +
-                    "10. Set expense_id in transaction_items to " + nextExpenseId + " (this is the next available expense ID from the database).\n" +
                     "11. Set created_at to current timestamp in ISO 8601 format.\n" +
                     "12. Match category names EXACTLY as they appear in the database (case-sensitive).\n" +
                     "13. The payment_method MUST be exactly one of: 'cash', 'credit', or 'debit' (no spaces, lowercase).\n",

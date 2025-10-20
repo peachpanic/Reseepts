@@ -36,6 +36,7 @@ export function useTransactions(userId?: string) {
 // adding mutation
 
 async function addTransaction(expense: Transaction) {
+  console.log("yo mama")
   console.log("Adding transaction:", expense);
   const res = await fetch("/api/expenses", {
     method: "POST",
