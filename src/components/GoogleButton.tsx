@@ -45,7 +45,7 @@ const GoogleButton = () => {
     <button
       onClick={handleGoogleSignIn}
       disabled={isLoading}
-      className="cursor-pointer flex items-center justify-center gap-3 px-8 py-3 bg-white border-2 border-gray-300 rounded-full font-semibold text-gray-800 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+      className="cursor-pointer flex items-center justify-center text-xs md:text-base gap-3 px-4 md:px-8 py-3 bg-white border-2 border-gray-300 rounded-full font-semibold text-gray-800 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {isLoading ? (
         <>

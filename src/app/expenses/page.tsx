@@ -1659,7 +1659,6 @@ Important rules:
                 </div>
               </motion.div>
             )}
-            // Speech Input Modal
             {isSpeechInputOpen && !showSpeechJsonReview && (
               <motion.div
                 initial={{ opacity: 0 }}
