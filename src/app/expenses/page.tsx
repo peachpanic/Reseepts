@@ -8,6 +8,8 @@ import ExpenseItem from "@/components/expenses/ExpenseItem";
 import CategoryDialog from "@/components/CategoryDialog";
 import { useOCR } from "@/hooks/useOCR";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useTransactions } from "@/hooks/useTransaction";
+import useOCRData from "@/hooks/useTransaction";
 
 // Helper: remove Markdown code fences
 function stripCodeFences(text: string): string {
@@ -95,6 +97,8 @@ export default function ExpensePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const mutation = useOCRData();
 
   // Add state for expenses
   const [expenses, setExpenses] = useState<any[]>([]);
@@ -281,7 +285,6 @@ export default function ExpensePage() {
         try {
           // Upload file
           await fileUploadHandler(file);
-          // OCR will be triggered by useEffect when filename changes
         } catch (error) {
           console.error("Error uploading file:", error);
           setIsLoading(false);
@@ -290,8 +293,6 @@ export default function ExpensePage() {
       reader.readAsDataURL(file);
     }
   };
-
-  // Add useEffect to trigger OCR after file upload
   useEffect(() => {
     const performOCR = async () => {
       if (filename && !ocrLoading && !ocrResult && isLoading) {
@@ -319,37 +320,61 @@ export default function ExpensePage() {
     setSaveLoading(true);
     setSaveSuccess(false);
 
-    try {
-      const response = await fetch("/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSave),
-      });
+    console.log("this is the data to save", dataToSave);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save transaction");
-      }
+    mutation.mutate(dataToSave, {
+      onSuccess: (result) => {
+        setSaveSuccess(true);
+        setSaveLoading(false);
+        try {
+          const tx = (result as any)?.transaction ?? result;
+          if (tx) setUpdatedOCRResult(tx);
+        } catch (e) {
+        }
 
-      const result = await response.json();
-      console.log("Transaction saved:", result);
+        setTimeout(() => {
+          setScreen("main");
+          setCapturedImage(null);
+        }, 1500);
+      },
+      onError: (err: any) => {
+        console.error("Save error:", err);
+        alert("Failed to save transaction: " + (err?.message || String(err)));
+        setSaveLoading(false);
+      },
+    });
 
-      setSaveSuccess(true);
-      alert(
-        `Transaction saved successfully! Expense ID: ${result.transaction?.expense_id}`
-      );
-      setUpdatedOCRResult(result.transaction);
+    // try {
+    //   const response = await fetch("/api/expenses", {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify(dataToSave),
+    //   });
 
-      setTimeout(() => {
-        setScreen("main");
-        setCapturedImage(null);
-      }, 2000);
-    } catch (err) {
-      console.error("Save error:", err);
-      alert("Failed to save transaction: " + (err as Error).message);
-    } finally {
-      setSaveLoading(false);
-    }
+    //   if (!response.ok) {
+    //     const errorData = await response.json();
+    //     throw new Error(errorData.error || "Failed to save transaction");
+    //   }
+
+    //   const result = await response.json();
+    //   console.log("Transaction saved:", result);
+
+    //   setSaveSuccess(true);
+    //   alert(
+    //     `Transaction saved successfully! Expense ID: ${result.transaction?.expense_id}`
+    //   );
+    //   setUpdatedOCRResult(result.transaction);
+
+    //   setTimeout(() => {
+    //     setScreen("main");
+    //     setCapturedImage(null);
+    //   }, 2000);
+    // } catch (err) {
+    //   console.error("Save error:", err);
+    //   alert("Failed to save transaction: " + (err as Error).message);
+    // } finally {
+    //   setSaveLoading(false);
+    // }
   };
 
   const handleChatSubmit = async () => {
