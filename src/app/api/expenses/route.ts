@@ -52,128 +52,49 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     let { transaction, transaction_items } = body;
 
-    // Validate required fields
-    if (!user_id || !amount || !expense_date) {
-      return NextResponse.json(
-        { error: "Missing required fields: user_id, amount, expense_date" },
-        { status: 400 }
-      );
-    }
-
-    // Normalize payment_method to match database constraint
-    // Common values: 'cash', 'credit', 'debit', 'bank transfer', 'e-wallet', etc.
-    let normalizedPaymentMethod = (payment_method || "cash")
-      .toLowerCase()
-      .trim();
-
-    // Map common variations to database-accepted values
-    if (normalizedPaymentMethod.includes("credit")) {
-      normalizedPaymentMethod = "credit";
-    } else if (normalizedPaymentMethod.includes("debit")) {
-      normalizedPaymentMethod = "debit";
-    } else if (normalizedPaymentMethod === "cash") {
-      normalizedPaymentMethod = "cash";
-    } else {
-      // Default to cash if unknown
-      normalizedPaymentMethod = "cash";
-    }
-
-    console.log("Original payment_method:", payment_method);
-    console.log("Normalized payment_method:", normalizedPaymentMethod);
-
-    // Insert transaction first
-    const { data: transaction, error: transactionError } = await supabase
-      .from("transactions")
-      .insert([
+    if (!transaction) {
+      return new Response(
+        JSON.stringify({ error: "transaction is required" }),
         {
-          user_id,
-          category_id,
-          amount,
-          description,
-          payment_method: normalizedPaymentMethod,
-          expense_date,
-        },
-      ])
-      .select()
-      .single();
-
-    if (transactionError) {
-      console.error("Error creating transaction:", transactionError);
-      return NextResponse.json(
-        { error: transactionError.message },
-        { status: 500 }
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
       );
     }
 
-    const expenseId = transaction.expense_id;
-    console.log("Created transaction with expense_id:", expenseId);
+    // Prefer explicit top-level transaction_items, otherwise accept transaction.line_items
+    const itemsToAttach =
+      Array.isArray(transaction_items) && transaction_items.length > 0
+        ? transaction_items
+        : Array.isArray(transaction?.line_items) &&
+          transaction.line_items.length > 0
+        ? transaction.line_items
+        : null;
 
-    // Insert transaction items if provided
-    if (
-      transaction_items &&
-      Array.isArray(transaction_items) &&
-      transaction_items.length > 0
-    ) {
-      const itemsToInsert = transaction_items.map(
-        (item: { item_name: string; amount: number; subcategory: string }) => ({
-          expense_id: expenseId,
-          item_name: item.item_name,
-          amount: item.amount,
-          subcategory: item.subcategory,
-        })
-      );
+    // ensure we never pass line_items to a plain insert
+    if (transaction?.line_items) delete transaction.line_items;
 
-      console.log("Inserting transaction items with expense_id:", expenseId);
-      console.log("Items to insert:", JSON.stringify(itemsToInsert, null, 2));
-
-      const { data: insertedItems, error: itemsError } = await supabase
-        .from("transaction_item")
-        .insert(itemsToInsert)
-        .select();
-
-      if (itemsError) {
-        console.error("Error creating transaction items:", itemsError);
-        // Transaction was created but items failed - you might want to handle this differently
-        return NextResponse.json(
-          {
-            warning: "Transaction created but items insertion failed",
-            transaction,
-            error: itemsError.message,
-          },
-          { status: 207 }
-        );
+    // Use RPC to perform atomic insert of transaction and its items
+    const { data, error } = await supabase.rpc(
+      "insert_transaction_with_items",
+      {
+        p_transaction: transaction,
+        p_items: itemsToAttach,
       }
-
-      console.log(
-        "Successfully inserted items:",
-        JSON.stringify(insertedItems, null, 2)
-      );
-    }
-
-    // Fetch the complete transaction with items
-    const { data: completeTransaction, error: fetchError } = await supabase
-      .from("transactions")
-      .select("*, transaction_item(*)")
-      .eq("expense_id", expenseId)
-      .single();
-
-    if (fetchError) {
-      console.error("Error fetching complete transaction:", fetchError);
-      return NextResponse.json(
-        { transaction, warning: "Transaction created but fetch failed" },
-        { status: 201 }
-      );
-    }
-
-    console.log(
-      "Complete transaction with items:",
-      JSON.stringify(completeTransaction, null, 2)
     );
 
-    return NextResponse.json(
-      { transaction: completeTransaction },
-      { status: 201 }
-    );
+    if (error) {
+      console.error("RPC insert_transaction_with_items error:", error);
+      return new Response(JSON.stringify({ error: error.message || error }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify(data), {
+      status: 201,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("Error in POST /api/expenses (RPC):", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
