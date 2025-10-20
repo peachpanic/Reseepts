@@ -20,11 +20,12 @@ export interface Transaction {
   emotion_tag: string;
   expense_date: Date;
   created_at: Date;
+  Transaction_items?: TransactionItem[];
 }
 
 export interface TransactionItem {
   id: number;
-  transaction_id: number;
+  expense_id: number;
   item_name: string;
   created_at: Date;
   subcategory: string;
