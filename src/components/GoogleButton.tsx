@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
 import Image from "next/image";
 
@@ -17,6 +17,12 @@ const GoogleIcon = () => (
 
 const GoogleButton = () => {
   const { data: session, status } = useSession();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    await signIn("google", { callbackUrl: "/home" });
+  };
 
   if (status === "authenticated") {
     return (
@@ -37,11 +43,23 @@ const GoogleButton = () => {
 
   return (
     <button
-      onClick={() => signIn("google", { callbackUrl: "/home" })}
-      className="cursor-pointer flex items-center justify-center gap-3 px-8 py-3 bg-white border-2 border-gray-300 rounded-full font-semibold text-gray-800 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm hover:shadow-md"
+      onClick={handleGoogleSignIn}
+      disabled={isLoading}
+      className="cursor-pointer flex items-center justify-center gap-3 px-8 py-3 bg-white border-2 border-gray-300 rounded-full font-semibold text-gray-800 hover:bg-gray-50 hover:border-gray-400 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <GoogleIcon />
-      <span>Sign in with Google</span>
+      {isLoading ? (
+        <>
+          <div className="animate-spin">
+            <GoogleIcon />
+          </div>
+          <span>Signing in...</span>
+        </>
+      ) : (
+        <>
+          <GoogleIcon />
+          <span>Sign in with Google</span>
+        </>
+      )}
     </button>
   );
 };

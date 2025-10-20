@@ -3,10 +3,22 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { Mic, MicOff, Plus, Trash2, Edit2 } from "lucide-react";
 import ExpenseItem from "@/components/expenses/ExpenseItem";
 import CategoryDialog from "@/components/CategoryDialog";
 import { useOCR } from "@/hooks/useOCR";
 import { uploadImage } from "@/lib/services/ocrService";
+import { useSpeechToText } from "@/hooks/useSpeechText";
+
+interface ParsedExpense {
+  item_name: string;
+  amount: number;
+  subcategory: string;
+}
+
+interface ExpenseFormData extends ParsedExpense {
+  id: string;
+}
 
 export default function ExpensePage() {
   const router = useRouter();
@@ -21,6 +33,11 @@ export default function ExpensePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Voice expense state
+  const [expenseItems, setExpenseItems] = useState<ExpenseFormData[]>([]);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   // Use OCR hook
   const {
     result: ocrResult,
@@ -28,6 +45,18 @@ export default function ExpensePage() {
     error: ocrError,
     performOCROnImage,
   } = useOCR();
+
+  // Speech to text hook
+  const {
+    transcript,
+    interimTranscript,
+    isListening,
+    isSupported,
+    error: speechError,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useSpeechToText();
 
   // Initialize camera when toggled
   useEffect(() => {
@@ -42,7 +71,6 @@ export default function ExpensePage() {
         .catch((err) => console.error("Error accessing camera:", err));
     }
 
-    // Cleanup: stop the camera when deactivated
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
@@ -50,6 +78,51 @@ export default function ExpensePage() {
       }
     };
   }, [isCameraActive]);
+
+  // Process transcript when user stops speaking
+  useEffect(() => {
+    const processTranscript = async () => {
+      if (
+        transcript &&
+        !isListening &&
+        !isProcessingVoice &&
+        screen === "upload"
+      ) {
+        setIsProcessingVoice(true);
+        try {
+          const response = await fetch("/api/aiSpeech", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sentence: transcript,
+              user_id: "1",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Failed to process expense");
+          }
+
+          const data = await response.json();
+          if (data.success && data.parsed) {
+            const newItem: ExpenseFormData = {
+              ...data.parsed,
+              id: Date.now().toString(),
+            };
+            setExpenseItems((prev) => [...prev, newItem]);
+          }
+        } catch (error) {
+          console.error("Error processing voice expense:", error);
+          alert("Failed to process voice input");
+        } finally {
+          setIsProcessingVoice(false);
+          resetTranscript();
+        }
+      }
+    };
+
+    processTranscript();
+  }, [transcript, isListening, screen]);
 
   const handleCapture = () => {
     if (videoRef.current && canvasRef.current) {
@@ -68,10 +141,8 @@ export default function ExpensePage() {
   const handleUpload = () => {
     if (capturedImage) {
       setIsLoading(true);
-      // TODO: Send capturedImage to API or process it
       console.log("Uploading captured image:", capturedImage);
 
-      // Wait 5 seconds then navigate to results
       setTimeout(() => {
         setIsLoading(false);
         setScreen("result");
@@ -80,7 +151,6 @@ export default function ExpensePage() {
   };
 
   const handleCancel = () => {
-    // Stop camera explicitly
     if (videoRef.current && videoRef.current.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
       tracks.forEach((track) => track.stop());
@@ -89,6 +159,8 @@ export default function ExpensePage() {
     setScreen("main");
     setIsCameraActive(false);
     setCapturedImage(null);
+    setExpenseItems([]);
+    resetTranscript();
   };
 
   const handleReset = () => {
@@ -105,12 +177,10 @@ export default function ExpensePage() {
         const imageData = e.target?.result as string;
         setCapturedImage(imageData);
 
-        // Upload file and trigger OCR
         setIsLoading(true);
         try {
           const uploadResponse = await uploadImage(file);
           if (uploadResponse.success) {
-            // Perform OCR on the uploaded file
             await performOCROnImage(uploadResponse.filename);
           }
         } catch (error) {
@@ -120,6 +190,60 @@ export default function ExpensePage() {
         }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleDeleteItem = (id: string) => {
+    setExpenseItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleEditItem = (id: string) => {
+    setEditingId(id);
+  };
+
+  const handleUpdateItem = (
+    id: string,
+    updatedItem: Partial<ExpenseFormData>
+  ) => {
+    setExpenseItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updatedItem } : item))
+    );
+    setEditingId(null);
+  };
+
+  const handleSaveAllExpenses = async () => {
+    if (expenseItems.length === 0) {
+      alert("No items to save");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      for (const item of expenseItems) {
+        const response = await fetch("/api/expenses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: "1",
+            item_name: item.item_name,
+            amount: item.amount,
+            subcategory: item.subcategory,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to save ${item.item_name}`);
+        }
+      }
+
+      alert("All expenses saved successfully!");
+      setExpenseItems([]);
+      setScreen("main");
+    } catch (error) {
+      console.error("Error saving expenses:", error);
+      alert("Failed to save expenses");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -171,18 +295,19 @@ export default function ExpensePage() {
           <i className="bx bx-chevron-left"></i>{" "}
         </button>
         <h2 className="text-white text-lg">Expenses</h2>
-        <button onClick={() => setIsCategoryDialogOpen(true)} className="cursor-ponter">
+        <button
+          onClick={() => setIsCategoryDialogOpen(true)}
+          className="cursor-ponter"
+        >
           Category
         </button>
       </div>
-      
-      {/* Category Dialog */}
-      <CategoryDialog 
+
+      <CategoryDialog
         isOpen={isCategoryDialogOpen}
         onClose={() => setIsCategoryDialogOpen(false)}
       />
-      
-      {/* Main Content */}
+
       <div className="bg-white rounded-lg p-4 min-h-screen">
         <div className="relative min-h-[300px]">
           <AnimatePresence mode="wait">
@@ -235,7 +360,6 @@ export default function ExpensePage() {
                     <ExpenseItem key={e.id} item={e} />
                   ))}
                 </div>
-                {/* Removed Go to Upload Receipt button; Add button now triggers upload screen */}
               </motion.div>
             )}
 
@@ -272,6 +396,136 @@ export default function ExpensePage() {
                   )}
                 </div>
                 <canvas ref={canvasRef} className="hidden" />
+
+                {/* Voice Input Section - Only show when no camera/image active */}
+                {!isCameraActive && !capturedImage && isSupported && (
+                  <div className="w-full mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">
+                        Or add by voice
+                      </span>
+                      <button
+                        onClick={() =>
+                          isListening
+                            ? stopListening()
+                            : startListening({ language: "en-US" })
+                        }
+                        className={`p-2 rounded-full ${
+                          isListening
+                            ? "bg-red-500 animate-pulse"
+                            : "bg-[#429690]"
+                        } hover:opacity-90 transition-all`}
+                      >
+                        {isListening ? (
+                          <MicOff className="w-5 h-5 text-white" />
+                        ) : (
+                          <Mic className="w-5 h-5 text-white" />
+                        )}
+                      </button>
+                    </div>
+
+                    {(transcript || interimTranscript) && (
+                      <div className="text-xs text-gray-600 mb-2 p-2 bg-white rounded border">
+                        {transcript}
+                        <span className="text-gray-400">
+                          {interimTranscript}
+                        </span>
+                      </div>
+                    )}
+
+                    {isProcessingVoice && (
+                      <div className="flex items-center gap-2 text-xs text-[#429690]">
+                        <div className="animate-spin rounded-full h-3 w-3 border-2 border-[#429690] border-t-transparent"></div>
+                        <span>Processing...</span>
+                      </div>
+                    )}
+
+                    {speechError && (
+                      <p className="text-xs text-red-600 mt-1">{speechError}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Voice-added items list */}
+                {expenseItems.length > 0 && (
+                  <div className="w-full mb-4 max-h-48 overflow-y-auto">
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      Items ({expenseItems.length})
+                    </p>
+                    <div className="space-y-2">
+                      {expenseItems.map((item) => (
+                        <div
+                          key={item.id}
+                          className="p-2 bg-gray-50 rounded border border-gray-200 text-sm"
+                        >
+                          {editingId === item.id ? (
+                            <div className="space-y-1">
+                              <input
+                                type="text"
+                                value={item.item_name}
+                                onChange={(e) =>
+                                  handleUpdateItem(item.id, {
+                                    item_name: e.target.value,
+                                  })
+                                }
+                                className="w-full p-1 text-xs border rounded"
+                              />
+                              <input
+                                type="number"
+                                value={item.amount}
+                                onChange={(e) =>
+                                  handleUpdateItem(item.id, {
+                                    amount: parseFloat(e.target.value),
+                                  })
+                                }
+                                className="w-full p-1 text-xs border rounded"
+                              />
+                              <button
+                                onClick={() => setEditingId(null)}
+                                className="w-full px-2 py-1 bg-[#429690] text-white text-xs rounded"
+                              >
+                                Done
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-medium text-gray-900">
+                                  {item.item_name}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  ₱{item.amount.toFixed(2)} • {item.subcategory}
+                                </p>
+                              </div>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => handleEditItem(item.id)}
+                                  className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteItem(item.id)}
+                                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-2 p-2 bg-[#429690] bg-opacity-10 rounded text-right">
+                      <span className="text-sm font-bold text-[#429690]">
+                        Total: ₱
+                        {expenseItems
+                          .reduce((sum, item) => sum + item.amount, 0)
+                          .toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {!isCameraActive && !capturedImage && (
                   <div className="flex flex-col gap-1 mb-3">
@@ -316,7 +570,6 @@ export default function ExpensePage() {
                     >
                       Upload
                     </button>
-
                     <button
                       className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-[#429690] hover:bg-[#2d6d68]"
                       onClick={handleReset}
@@ -324,6 +577,16 @@ export default function ExpensePage() {
                       Reset
                     </button>
                   </div>
+                )}
+
+                {/* Save voice items button */}
+                {expenseItems.length > 0 && (
+                  <button
+                    onClick={handleSaveAllExpenses}
+                    className="border rounded-full px-8 py-2 text-white font-semibold mb-2 bg-green-600 hover:bg-green-700"
+                  >
+                    Save All Items
+                  </button>
                 )}
 
                 <button
@@ -348,7 +611,6 @@ export default function ExpensePage() {
                   Receipt Summary
                 </h2>
 
-                {/* Receipt Preview */}
                 <div className="bg-gray-100 rounded-lg p-4 mb-6 max-h-48 overflow-y-auto">
                   {capturedImage && (
                     <img
@@ -359,7 +621,6 @@ export default function ExpensePage() {
                   )}
                 </div>
 
-                {/* Transcribed Items */}
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-black mb-4">
                     Detected Items
@@ -377,7 +638,9 @@ export default function ExpensePage() {
                   {ocrResult && !ocrLoading ? (
                     <div className="space-y-3">
                       <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-gray-700 font-medium mb-2">OCR Results:</p>
+                        <p className="text-sm text-gray-700 font-medium mb-2">
+                          OCR Results:
+                        </p>
                         <pre className="text-xs text-gray-600 overflow-auto max-h-64 bg-white p-2 rounded border border-gray-200 whitespace-pre-wrap break-words">
                           {typeof ocrResult === "string"
                             ? ocrResult
@@ -390,7 +653,9 @@ export default function ExpensePage() {
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
                         <div>
                           <p className="font-medium text-black">Item 1</p>
-                          <p className="text-sm text-gray-500">Category: Food</p>
+                          <p className="text-sm text-gray-500">
+                            Category: Food
+                          </p>
                         </div>
                         <p className="font-semibold text-[#429690]">$25.50</p>
                       </div>
@@ -416,7 +681,6 @@ export default function ExpensePage() {
                   )}
                 </div>
 
-                {/* Total */}
                 <div className="bg-[#429690] text-white rounded-lg p-4 mb-6">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold">Total Amount</span>
@@ -424,7 +688,6 @@ export default function ExpensePage() {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex flex-col gap-3">
                   <button
                     className="w-full border-2 border-[#429690] text-[#429690] font-semibold py-3 rounded-lg hover:bg-[#429690] hover:text-white transition-colors"
