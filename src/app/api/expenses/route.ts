@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     let { transaction, transaction_items } = body;
-    console.log("Received transaction to add:", JSON.stringify(transaction, null, 2));
+    console.log("transaction raw data:", transaction);
 
     if (!transaction) {
       return new Response(
