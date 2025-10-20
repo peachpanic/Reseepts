@@ -71,10 +71,10 @@ export default function Home() {
               <Image
                 src="/man.png"
                 alt="Man"
-                width={400}
-                height={400}
-                sizes="(max-width: 768px) 250px, 384px"
-                className="w-88 md:w-96 h-auto relative z-50"
+                width={300} // reduced from 400
+                height={350} // reduced from 300
+                sizes="(max-width: 768px) 200px, 200px"
+                className="w-60 md:w-76 h-auto relative z-50" // reduced from w-80/md:w-96
               />
             </motion.div>
 
