@@ -61,14 +61,14 @@ export default function Home() {
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
-              className=""
+              className="relative z-50"
             >
               {/* <svg
                 width="200"
                 height="200"
                 viewBox="0 0 200 200"
                 fill="none"
-                xmlns="http://www.w3.org/2000/svg"
+                xmlns="http://www.w3.org/2000/flex flex-col justify-center items-center text-center h-full md:text-left md:bg-[#EEF8F7] rounded-tr-2xl rounded-br-2xl"
               >
                 {" "}
                 <g clip-path="url(#clip0_103_21)">
@@ -103,8 +103,8 @@ export default function Home() {
                 alt="Man"
                 width={400}
                 height={400}
-                sizes="(max-width: 768px) 160px, 384px"
-                className="mb-4 w-52 h-auto md:w-96"
+                sizes="(max-width: 768px) 280px, 384px"
+                className="mb-4 w-85 h-auto md:w-96 relative z-50"
               />
             </motion.div>
 
@@ -205,7 +205,7 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <div className="lg:bg-white rounded-2xl py-10 px-20 md:py-8 shadow-xl">
+                <div className="lg:bg-white rounded-2xl py-10 px-20 md:py-8 md:shadow-xl">
                   <div className="flex items-center justify-center mb-6">
                     <h3 className="text-2xl font-bold text-gray-900">
                       Sign in

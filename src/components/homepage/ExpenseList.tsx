@@ -21,7 +21,7 @@ export default function ExpenseList() {
             {expenses?.length || 0} recent transaction
             {expenses?.length !== 1 ? "s" : ""}
           </p>
-        </div>  
+        </div>
         <Link
           href="/expenses"
           className="group flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#429690] to-teal-500 text-white rounded-full font-semibold text-sm hover:shadow-md transition-all active:scale-95 hover:scale-105 cursor-pointer"
@@ -57,7 +57,6 @@ export default function ExpenseList() {
                 />
               </svg>
             </div>
-            <p className="text-gray-500 font-medium">No expenses yet</p>
             <p className="text-gray-400 text-sm mt-1">
               Start tracking your spending
             </p>

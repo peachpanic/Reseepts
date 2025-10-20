@@ -87,7 +87,7 @@ export default function Homepage() {
           <CardHeader className="py-8 px-8 relative z-10">
             <div className="flex items-center justify-between mb-4">
               <CardTitle className="text-[#429690]/70 font-medium text-sm tracking-wide">
-                Total Balance
+                Total Expenses
               </CardTitle>
               <div className="p-2.5 bg-gradient-to-br from-[#429690]/20 to-transparent rounded-full">
                 <TrendingUp size={18} className="text-[#429690]" />

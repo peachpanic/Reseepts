@@ -2,19 +2,11 @@ import { supabase } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-<<<<<<< HEAD
-    try {
-        const searchParams = req.nextUrl.searchParams;
-        const userId = searchParams.get("id");
-        const limit = parseInt(searchParams.get("limit") || "10", 10);
-        const period = searchParams.get("period");
-=======
   try {
     const searchParams = req.nextUrl.searchParams;
     const userId = searchParams.get("id");
     const limit = parseInt(searchParams.get("limit") || "5", 10);
     const period = searchParams.get("period");
->>>>>>> d7922e776af681e52b77c21e5cdcc328929348d7
 
     console.log("Fetching top expenses for user: ", userId);
 
@@ -63,19 +55,11 @@ export async function GET(req: NextRequest) {
                 category_name,
                 icon
                 )
-<<<<<<< HEAD
-            `)
-            .eq("user_id", userId)
-            .gte("expense_date", startDate.toISOString())
-            .order("amount", { ascending: false })
-            .limit(limit)
-=======
             `
       )
       .eq("user_id", userId)
       .order("amount", { ascending: false })
       .limit(limit);
->>>>>>> d7922e776af681e52b77c21e5cdcc328929348d7
 
     if (error) {
       console.error("Supabase error: ", error);
