@@ -7,11 +7,12 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { signOut } from "next-auth/react";
 import { LogOut, TrendingUp } from "lucide-react";
+import { signOut, useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 export default function Homepage() {
+  const { data: session, status } = useSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [totalBalance, setTotalBalance] = useState<number>(0);
 
@@ -50,10 +51,10 @@ export default function Homepage() {
             <p className="text-white/70 text-sm font-medium tracking-wide mb-1">
               Welcome back
             </p>
-            <h1 className="font-bold text-4xl mt-2 leading-tight">
+            <h1 className="font-bold text-2xl mt-2 leading-tight">
               Good day,{" "}
               <span className="bg-gradient-to-r from-white to-teal-100 bg-clip-text text-transparent">
-                user!
+                {session?.user?.name}
               </span>
             </h1>
           </div>

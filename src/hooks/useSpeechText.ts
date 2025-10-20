@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 
-// lib/speechToText.ts
 export interface SpeechToTextOptions {
   language?: string; // e.g., 'en-US', 'es-ES', 'fr-FR'
   continuous?: boolean; // Keep listening until stopped
