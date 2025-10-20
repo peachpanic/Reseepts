@@ -1,14 +1,13 @@
 "use client";
 
-import { signOut } from "next-auth/react";
-import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
 import {
   Card,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
+import { signOut, useSession } from "next-auth/react";
+import Image from "next/image";
 
 type UserData = {
   full_name: string;
@@ -34,18 +33,19 @@ export default function AccountPage() {
     <div className="flex flex-col w-full h-full bg-teal-600">
       {/* Top Section - with relative positioning and extra padding for card */}
       <div className="relative flex flex-col w-full py-8 px-4 pb-20 text-white">
-        <div className="w-full">My Account</div>
-        <div className="font-bold text-2xl">{session?.user?.name}</div>
+        <div className="w-full "></div>
+        {/* <div className="font-bold text-2xl">{session?.user?.name}</div> */}
 
         {/* Card positioned absolutely to overlap */}
-        <Card className="absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/2 flex flex-col bg-teal-700 w-[90%] shadow-lg border-0">
-          <CardHeader className="text-white">
-            <CardTitle>Account Summary</CardTitle>
-            <h1 className="font-bold text-3xl">₱123</h1>{" "}
-            {/* Monthly Allowance */}
-            <CardDescription className="text-gray-200">
-              Monthly Allowance
-            </CardDescription>
+        <Card className="absolute left-1/2 -translate-x-1/2 bg-transparent bottom-0 translate-y-1/2 flex flex-col w-[90%]  border-0 shadow-none">
+          <CardHeader className="text-white justify-center flex flex-col items-center">
+            <Image
+              src={session?.user?.image || ""}
+              alt="User Avatar"
+              width={50}
+              height={50}
+              className="rounded-full mb-2 border-4 border-teal-700 size-40"
+            />
           </CardHeader>
         </Card>
       </div>
@@ -56,20 +56,8 @@ export default function AccountPage() {
           {session ? (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Full Name
-                </label>
-                <p className="mt-1 text-lg text-gray-900">
-                  {session?.user?.name}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Email
-                </label>
-                <p className="mt-1 text-lg text-gray-900">
-                  {session?.user?.email}
-                </p>
+                <h4 className="text-teal-500">{session?.user?.name}</h4>
+                <p className="text-teal-500 text-sm">{session?.user?.email}</p>
               </div>
 
               <div className="pt-4">

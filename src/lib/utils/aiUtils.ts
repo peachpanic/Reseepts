@@ -1,6 +1,11 @@
 import { generateText } from "ai";
 import { UserData } from "../definitions";
 
+interface InsightsResponse {
+  insights_summary: string;
+  practical_tips: string[];
+}
+
 export const generateInsights = async (
   userData: UserData,
   model: any,
@@ -8,9 +13,26 @@ export const generateInsights = async (
   totalExpenses: number,
   expenseCount: number,
   topCats: string
-) => {
-  const prompt = `You are a friendly financial advisor. Produce a VERY SHORT insights summary (max 3 bullets).
-Include: 1) one-line overview of finances, 2) top spending category and amount, 3) three quick, practical tips to save.
+): Promise<InsightsResponse> => {
+  const prompt = `You are a friendly and insightful financial advisor. Analyze the user's spending patterns and produce a detailed yet easy-to-understand insights summary.
+
+Your summary should include:
+1) A comprehensive overview of their financial health (2-3 sentences) - comment on their spending patterns, how they're doing against their allowance and savings goal
+2) Detailed analysis of top spending categories - breakdown the top 3 categories with amounts and observations
+3) Specific spending habits and trends - identify any concerning patterns or positive behaviors
+4) Three actionable, practical money-saving tips tailored to their spending habits
+
+Keep the tone friendly and encouraging, not judgmental. Provide real, personalized advice based on their data.
+
+Return ONLY valid JSON in this exact format:
+{
+  "insights_summary": "<your detailed insights here - 4-5 sentences covering all points above>",
+  "practical_tips": [
+    "<specific, actionable tip 1>",
+    "<specific, actionable tip 2>",
+    "<specific, actionable tip 3>"
+  ]
+}
 
 User: ${userData.full_name}
 Allowance: ₱${userData.allowance ?? "N/A"}
@@ -22,8 +44,40 @@ Top categories: ${topCats}`;
 
   const { text: insights } = await generateText({
     model,
-    prompt: prompt,
+    prompt,
   });
 
-  return insights;
+  try {
+    // Extract JSON if the response contains extra text
+    const jsonMatch = insights.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("No JSON found in response");
+    }
+
+    const parsedInsights: InsightsResponse = JSON.parse(jsonMatch[0]);
+
+    // Validate required fields
+    if (
+      !parsedInsights.insights_summary ||
+      !Array.isArray(parsedInsights.practical_tips)
+    ) {
+      throw new Error("Missing required fields in JSON response");
+    }
+
+    if (parsedInsights.practical_tips.length !== 3) {
+      console.warn(
+        "Expected 3 tips, got",
+        parsedInsights.practical_tips.length
+      );
+    }
+
+    return parsedInsights;
+  } catch (error) {
+    console.error("Failed to parse insights JSON:", error);
+    throw new Error(
+      `Invalid JSON response from AI model: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
 };

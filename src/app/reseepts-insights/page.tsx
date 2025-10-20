@@ -9,31 +9,15 @@ import {
   TrendingUp,
   AlertCircle,
 } from "lucide-react";
+import { useInsights } from "@/hooks/useInsights";
 
 const ReseeptsInsightsPage = () => {
   const [activeTab, setActiveTab] = useState("insights");
-
+  const { data, isLoading, isError } = useInsights("1");
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <div className="bg-slate-900 border-b border-teal-500/20 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <ChevronLeft className="w-6 h-6 text-teal-400 cursor-pointer" />
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">RI</span>
-              </div>
-              <h1 className="text-white text-xl font-bold">
-                Reseepts Insights
-              </h1>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Share2 className="w-5 h-5 text-teal-400 cursor-pointer" />
-            <Info className="w-5 h-5 text-teal-400 cursor-pointer" />
-          </div>
-        </div>
+    <div className="min-h-screen bg-white">
+      <div className="px-4">
+        <h4 className="text-2xl font-semibold">Reseepts Insights</h4>
       </div>
 
       {/* Main Content */}
@@ -49,43 +33,20 @@ const ReseeptsInsightsPage = () => {
           </div>
 
           <p className="text-white text-base leading-relaxed mb-4">
-            Bitcoin has experienced a 1.63% price increase over the last 24
-            hours, reaching 108624.18 USDT, fueled by strong technical momentum
-            and positive institutional developments, indicating key factors.
+            {data?.insights.insights_summary}
           </p>
 
           <div className="space-y-4 mt-6">
-            <div className="pl-4 border-l-2 border-teal-400">
-              <h3 className="text-white font-semibold text-sm mb-1">
-                1. Technical Momentum
-              </h3>
-              <p className="text-gray-300 text-sm">
-                Price has broken out above Bollinger Bands with strong MACD and
-                high volume, indicating bullish technical momentum, though RSI
-                suggests overbought conditions.
-              </p>
-            </div>
-
-            <div className="pl-4 border-l-2 border-teal-400">
-              <h3 className="text-white font-semibold text-sm mb-1">
-                2. Evolving Utility
-              </h3>
-              <p className="text-gray-300 text-sm">
-                Institutional interest is growing for Bitcoin's yield and DeFi
-                capabilities, supported by a significant Core software update
-                and positive regulatory news from Japan.
-              </p>
-            </div>
-
-            <div className="pl-4 border-l-2 border-teal-400">
-              <h3 className="text-white font-semibold text-sm mb-1">
-                3. Whale Activity
-              </h3>
-              <p className="text-gray-300 text-sm">
-                A major whale has increased its Bitcoin long position, signaling
-                strong confidence, despite some recent short-term outflows.
-              </p>
-            </div>
+            {data?.insights.practical_tips.map(
+              (insight: string, index: number) => (
+                <div className="pl-4 border-l-2 border-teal-400" key={index}>
+                  <h3 className="text-white font-semibold text-sm mb-1">
+                    {index + 1}
+                  </h3>
+                  <p className="text-gray-300 text-sm">{insight}</p>
+                </div>
+              )
+            )}
           </div>
 
           <div className="mt-6 p-3 bg-slate-800/50 rounded-lg border border-teal-500/20">
