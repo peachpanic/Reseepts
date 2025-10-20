@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,28 +38,43 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const categories = [
-      "Food",
-      "Travel",
-      "Office Supplies",
-      "Entertainment",
-      "Utilities",
-      "Healthcare",
-      "Housing/Rent",
-      "Mortgage",
-      "Transportation",
-      "Auto/Car Payment",
-      "Insurance",
-      "Personal Care",
-      "Clothing",
-      "Education",
-      "Debt Repayment",
-      "Savings & Investments",
-      "Gifts & Donations",
-      "Pets",
-      "Appliances",
-      "Other",
-    ];
+    // Fetch categories from database
+    const { data: categoriesData, error: categoriesError } = await supabase
+      .from("categories")
+      .select("*")
+      .order("category_name", { ascending: true });
+
+    if (categoriesError) {
+      console.error("Failed to fetch categories:", categoriesError);
+      return NextResponse.json(
+        { error: "Failed to fetch categories" },
+        { status: 500 }
+      );
+    }
+
+    const categories = categoriesData || [];
+    
+    // Create a mapping object for the AI to understand
+    const categoryMapping = categories.reduce((acc: Record<string, number>, cat: { category_name: string; category_id: number }) => {
+      acc[cat.category_name] = cat.category_id;
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Get the latest expense_id from transactions table
+    const { data: latestTransaction } = await supabase
+      .from("transactions")
+      .select("expense_id")
+      .order("expense_id", { ascending: false })
+      .limit(1)
+      .single();
+
+    // Calculate next expense_id
+    const nextExpenseId = latestTransaction?.expense_id 
+      ? latestTransaction.expense_id + 1 
+      : 1;
+
+    console.log("Latest expense_id:", latestTransaction?.expense_id);
+    console.log("Next expense_id will be:", nextExpenseId);
 
     // Read and encode image
     const imageBuffer = fs.readFileSync(resolvedPath);
@@ -100,34 +121,44 @@ export async function POST(request: NextRequest) {
                 {
                   type: "text",
                   text:
-                    "Available categories: " +
+                    "Available categories from database: " +
                     JSON.stringify(categories) +
+                    "\n\nCategory ID mapping:\n" +
+                    JSON.stringify(categoryMapping, null, 2) +
                     "\n\n" +
                     "Return the result in this exact JSON format:\n" +
                     "{\n" +
-                    '  "user_id": <integer>,\n' +
-                    '  "amount": <numeric>,\n' +
-                    '  "description": "<merchant or summary>",\n' +
-                    '  "main_category": "<category from the provided list>",\n' +
-                    '  "payment_method": "<cash | credit card | debit | other>",\n' +
-                    '  "expense_date": "YYYY-MM-DD",\n' +
-                    '  "created_at": "YYYY-MM-DDTHH:MM:SSZ",\n' +
-                    '  "line_items": [\n' +
-                    "    {\n" +
-                    '      "item_name": "<product/service>",\n' +
-                    '      "sub_category": "<category from the provided list>",\n' +
-                    '      "quantity": <numeric>,\n' +
-                    '      "unit_price": <numeric>,\n' +
-                    '      "total_price": <numeric>\n' +
-                    "    }\n" +
-                    "  ]\n" +
+                    '  "user_id": 1,\n' +
+                    '  "category_id": <integer matching the category from the mapping above>,\n' +
+                    '  "amount": <numeric>,\n' +
+                    '  "description": "<merchant or summary>",\n' +
+                    '  "payment_method": "<cash | credit | debit>",\n' +
+                    '  "expense_date": "YYYY-MM-DD",\n' +
+                    '  "created_at": "<ISO 8601 timestamp>",\n' +
+                    '  "transaction_items": [\n' +
+                    "    {\n" +
+                    '      "item_name": "<product/service>",\n' +
+                    '      "amount": <numeric>,\n' +
+                    '      "subcategory": "<category name from the provided list>",\n' +
+                    '      "expense_id": ' + nextExpenseId + ',\n' +
+                    '      "created_at": "<ISO 8601 timestamp>"\n' +
+                    "    }\n" +
+                    "  ]\n" +
                     "}\n" +
                     "Rules:\n" +
                     "1. Output must be valid JSON only.\n" +
                     "2. Do not include markdown, code blocks, or comments.\n" +
-                    "3. The 'category' field for every line_items entry MUST be a non-null string selected from the provided categories list. If unsure, use 'Other'.\n" +
-                    "4. Use null only for top-level optional fields that truly cannot be determined (not for category).\n" +
-                    "5. Ensure numeric fields are numbers (not strings).\n",
+                    "3. The 'subcategory' field for every transaction_items entry MUST be a non-null string that EXACTLY matches one of the category_name values from the database.\n" +
+                    "4. The 'category_id' field MUST be the integer ID from the category mapping that best matches the overall expense type.\n" +
+                    "5. For example, if the receipt is from a grocery store, use the category_id for 'Groceries' if it exists in the mapping.\n" +
+                    "6. Ensure numeric fields are numbers (not strings).\n" +
+                    "7. The 'amount' in transaction_items is the total price for that line item.\n" +
+                    "8. The top-level 'amount' should be the SUM of all transaction_items' amount values.\n" +
+                    "9. Set user_id to 1 as placeholder.\n" +
+                    "10. Set expense_id in transaction_items to " + nextExpenseId + " (this is the next available expense ID from the database).\n" +
+                    "11. Set created_at to current timestamp in ISO 8601 format.\n" +
+                    "12. Match category names EXACTLY as they appear in the database (case-sensitive).\n" +
+                    "13. The payment_method MUST be exactly one of: 'cash', 'credit', or 'debit' (no spaces, lowercase).\n",
                 },
                 {
                   type: "image_url",

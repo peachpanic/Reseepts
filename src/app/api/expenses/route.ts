@@ -1,12 +1,11 @@
 import { supabase } from "@/lib/supabase";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
     // Get ID from query parameters
     const searchParams = req.nextUrl.searchParams;
     const id = searchParams.get("id");
-    const period = searchParams.get("period");
 
     console.log("Fetching expenses for user:", id);
 

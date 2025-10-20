@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
 import ExpenseItem from "@/components/expenses/ExpenseItem";
 import CategoryDialog from "@/components/CategoryDialog";
 import { useOCR } from "@/hooks/useOCR";
@@ -164,24 +165,54 @@ export default function ExpensePage() {
     },
   ];
 
+  const handleBackToHome = () => {
+    router.push("/home");
+  };
+
   return (
     <div className="relative min-h-screen bg-[#429690]">
-      <div className="flex justify-around items-center p-4 mb-4 font-bold text-white text-2xl">
-        <button>
-          <i className="bx bx-chevron-left"></i>{" "}
+      <div className="flex justify-between items-center p-4 mb-4 font-bold text-white text-2xl">
+        <button
+          onClick={handleBackToHome}
+          className="flex items-center gap-2 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all active:scale-95 cursor-pointer group"
+          aria-label="Go back to home"
+        >
+          <ArrowLeft
+            size={24}
+            className="text-white group-hover:text-teal-600 transition-colors"
+          />
         </button>
-        <h2 className="text-white text-lg">Expenses</h2>
-        <button onClick={() => setIsCategoryDialogOpen(true)} className="cursor-ponter">
-          Category
+        <h2 className="text-white text-lg flex-1 text-center">Expenses</h2>
+        <button
+          onClick={() => setIsCategoryDialogOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30 transition-all active:scale-95 cursor-pointer font-semibold text-sm shadow-md hover:shadow-lg group"
+          aria-label="Open category dialog"
+        >
+          <span className="text-teal-600 group-hover:text-teal-800 transition-colors">
+            Category
+          </span>
+          <svg
+            className="w-4 h-4 text-teal-600 group-hover:text-teal-800 group-hover:translate-x-0.5 transition-all"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
         </button>
       </div>
-      
+
       {/* Category Dialog */}
-      <CategoryDialog 
+      <CategoryDialog
         isOpen={isCategoryDialogOpen}
         onClose={() => setIsCategoryDialogOpen(false)}
       />
-      
+
       {/* Main Content */}
       <div className="bg-white rounded-lg p-4 min-h-screen">
         <div className="relative min-h-[300px]">
@@ -300,7 +331,7 @@ export default function ExpensePage() {
                 {isCameraActive && (
                   <div>
                     <button
-                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-[#429690] hover:bg-[#2d6d68]"
+                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-teal-600 hover:bg-teal-800 transition-colors"
                       onClick={handleCapture}
                     >
                       Capture
@@ -311,14 +342,14 @@ export default function ExpensePage() {
                 {capturedImage && (
                   <div>
                     <button
-                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-[#429690] hover:bg-[#2d6d68]"
+                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-teal-600 hover:bg-teal-800 transition-colors"
                       onClick={handleUpload}
                     >
                       Upload
                     </button>
 
                     <button
-                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-[#429690] hover:bg-[#2d6d68]"
+                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-teal-600 hover:bg-teal-800 transition-colors"
                       onClick={handleReset}
                     >
                       Reset
@@ -377,7 +408,9 @@ export default function ExpensePage() {
                   {ocrResult && !ocrLoading ? (
                     <div className="space-y-3">
                       <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-gray-700 font-medium mb-2">OCR Results:</p>
+                        <p className="text-sm text-gray-700 font-medium mb-2">
+                          OCR Results:
+                        </p>
                         <pre className="text-xs text-gray-600 overflow-auto max-h-64 bg-white p-2 rounded border border-gray-200 whitespace-pre-wrap break-words">
                           {typeof ocrResult === "string"
                             ? ocrResult
@@ -390,7 +423,9 @@ export default function ExpensePage() {
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
                         <div>
                           <p className="font-medium text-black">Item 1</p>
-                          <p className="text-sm text-gray-500">Category: Food</p>
+                          <p className="text-sm text-gray-500">
+                            Category: Food
+                          </p>
                         </div>
                         <p className="font-semibold text-[#429690]">$25.50</p>
                       </div>

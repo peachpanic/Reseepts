@@ -295,7 +295,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-            {/* remove clip-path on md+ screens */}
             <style>{`@media (min-width: 768px) { div[style] { clip-path: none !important; -webkit-clip-path: none !important; position: static !important; height: auto !important; width: auto !important; background: transparent !important; } }`}</style>
           </div>
         </div>
