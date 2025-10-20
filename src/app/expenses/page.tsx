@@ -254,31 +254,6 @@ Important rules:
   };
 
   // Save from speech review
-  const handleSaveSpeechFromReview = async () => {
-    if (!processedSpeechData) return;
-
-    setSaveLoading(true);
-
-    mutation.mutate(processedSpeechData, {
-      onSuccess: () => {
-        setSaveSuccess(true);
-        setSaveLoading(false);
-        alert("Expense saved successfully!");
-        setShowSpeechJsonReview(false);
-        setIsSpeechInputOpen(false);
-        setProcessedSpeechData(null);
-        setSpeechTranscript("");
-        resetTranscript();
-        // Refresh expenses list
-        window.location.reload();
-      },
-      onError: (err: any) => {
-        console.error("Save error:", err);
-        alert("Failed to save expense: " + (err?.message || String(err)));
-        setSaveLoading(false);
-      },
-    });
-  };
 
   // Fetch categories on mount
   useEffect(() => {
@@ -667,7 +642,7 @@ Important rules:
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-50 flex items-center justify-center p-4"
           onClick={() => setIsManualInputOpen(false)}
         >
           <motion.div
@@ -831,7 +806,7 @@ Important rules:
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-50 flex items-center justify-center p-4"
           onClick={() => {
             setShowManualJsonReview(false);
             setProcessedManualData(null);
@@ -1382,7 +1357,7 @@ Important rules:
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+                className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-50 flex items-center justify-center p-4"
                 onClick={() => {
                   if (!isListening) {
                     setIsSpeechInputOpen(false);
@@ -1527,7 +1502,7 @@ Important rules:
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+                className="fixed inset-0 bg-[rgba(0,0,0,0.5)] z-50 flex items-center justify-center p-4"
                 onClick={() => {
                   setShowSpeechJsonReview(false);
                   setProcessedSpeechData(null);
