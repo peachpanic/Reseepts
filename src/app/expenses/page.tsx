@@ -728,7 +728,7 @@ Important rules:
                     ₱{totalExpense.toFixed(2)}
                   </h1>
                 </div>
-                <div className="flex flex-col gap-3 items-center mb-4">
+                <div className="flex flex-row w-full items-center justify-center gap-3 items-center mb-4">
                   {/* Scan Receipt Button */}
                   <div className="flex flex-col items-center text-[#549994] font-bold">
                     <button
