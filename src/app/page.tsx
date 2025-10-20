@@ -264,7 +264,9 @@ export default function Home() {
                   {/* OR separator */}
                   <div className="flex items-center gap-3 my-6">
                     <span className="flex-1 h-px bg-gray-200" />
-                    <span className="text-xs text-gray-500 font-medium">OR</span>
+                    <span className="text-xs text-gray-500 font-medium">
+                      OR
+                    </span>
                     <span className="flex-1 h-px bg-gray-200" />
                   </div>
 
@@ -293,7 +295,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-            {/* remove clip-path on md+ screens */}
             <style>{`@media (min-width: 768px) { div[style] { clip-path: none !important; -webkit-clip-path: none !important; position: static !important; height: auto !important; width: auto !important; background: transparent !important; } }`}</style>
           </div>
         </div>
