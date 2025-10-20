@@ -16,8 +16,6 @@ export interface Transaction {
   amount: number;
   description: string;
   payment_method: string;
-  source: string;
-  emotion_tag: string;
   expense_date: Date;
   created_at: Date;
   Transaction_items?: TransactionItem[];

@@ -6,6 +6,8 @@ import { useOCR } from "@/hooks/useOCR";
 import { FileUploadInput } from "@/components/FileUploadInput";
 import { OCRButton } from "@/components/OCRButton";
 import { ResultsDisplay } from "@/components/ResultsDisplay";
+import { SendToBack } from "lucide-react";
+import useOCRData from "@/hooks/useTransaction";
 
 // Helper: remove Markdown code fences (e.g., ```text ... ```) and trim
 function stripCodeFences(text: string): string {
@@ -109,7 +111,66 @@ export default function GeminiPage() {
 
   const [chatLoading, setChatLoading] = useState(false);
   const [userInput, setUserInput] = useState("");
-  const [updatedOCRResult, setUpdatedOCRResult] = useState(null);
+  const [updatedOCRResult, setUpdatedOCRResult] = useState<any | null>(null);
+  const mutation = useOCRData();
+
+  function sendToBackend() {
+    const sampleExpense: any = {
+      user_id: 1,
+      amount: 29.82,
+      description: "Grocery Depot",
+      category_id: 11,
+      payment_method: "cash",
+      expense_date: "2019-01-07",
+      created_at: "2024-01-01T12:00:00Z",
+      line_items: [
+        {
+          item_name: "DELITE SKIM",
+          subcategory: "Food",
+          amount: 10.36,
+        },
+        {
+          item_name: "WHOLEMILK",
+          subcategory: "Food",
+          amount: 7.77,
+        },
+      ],
+    };
+
+    mutation.mutate(sampleExpense);
+
+    //   setChatLoading(true);
+    //   try {
+    //     const { line_items, ...transaction } = sampleExpense;
+
+    //     const payload = {
+    //       transaction,
+    //       transaction_items: line_items || [],
+    //     };
+
+    //     const res = await fetch("/api/expenses", {
+    //       method: "POST",
+    //       headers: { "Content-Type": "application/json" },
+    //       body: globalThis.JSON.stringify(payload),
+    //     });
+
+    //     if (!res.ok) {
+    //       const err = await res.json().catch(() => ({}));
+    //       console.error("Failed to create expense:", err);
+    //       return;
+    //     }
+
+    //     const data = await res.json();
+    //     console.log("Created expense:", data);
+    //     // Optionally show created result in the UI
+    //     setUpdatedOCRResult(data);
+    //   } catch (err) {
+    //     console.error("Error sending to backend:", err);
+    //   } finally {
+    //     setChatLoading(false);
+    //   }
+    // })();
+  }
 
   useEffect(() => {
     const fetchImageRecognition = async () => {
@@ -255,7 +316,9 @@ Important rules:
         parsed = globalThis.JSON.parse(assistantText);
       } catch (err) {
         console.error("JSON parse error: ", err);
-        throw new Error("Assistant returned non-JSON response: " + assistantText);
+        throw new Error(
+          "Assistant returned non-JSON response: " + assistantText
+        );
       }
 
       setUpdatedOCRResult(parsed);
@@ -398,6 +461,19 @@ Important rules:
               }}
             >
               Clear
+            </button>
+            <button
+              onClick={() => sendToBackend()}
+              style={{
+                padding: "10px 20px",
+                backgroundColor: "#e5e7eb",
+                color: "#111827",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+              }}
+            >
+              Send to Bakcend
             </button>
           </div>
         </div>
