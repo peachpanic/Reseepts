@@ -7,6 +7,7 @@ import { TimePeriodFilter } from "@/components/insight/TimePeriodFilter";
 import { useState, useEffect } from "react";
 import { useTransactions, useTopTransactions } from "@/hooks/useTransaction";
 import SpendChart from "@/components/insight/SpendChart";
+import Link from "next/link";
 
 // export default function InsightPage() {
 //   const [period, setPeriod] = useState<string>("day");
