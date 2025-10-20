@@ -18,13 +18,16 @@ export async function GET(req: NextRequest) {
     const { data: transactions, error } = await supabase
       .from("transactions")
       .select("*, transaction_item(*)")
-      .eq("user_id", id)
-      .order("expense_date", { ascending: false });
+      .eq("user_id", id);
 
-    // Add these console.logs
-    console.log("Query executed for user_id:", id);
-    console.log("Transactions data:", JSON.stringify(transactions, null, 2));
-    console.log("Query error:", error);
+    // Single console log with all info
+    console.log({
+      userId: id,
+      transactionCount: transactions?.length || 0,
+      data: transactions,
+      transactionItems: transactions?.flatMap((t) => t.transaction_item) || [],
+      error: error,
+    });
 
     if (error) {
       console.log("Error fetching transactions:", error);
@@ -33,8 +36,6 @@ export async function GET(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
       });
     }
-
-    console.log("Fetched transactions:", JSON.stringify(transactions, null, 2));
 
     return new Response(JSON.stringify({ transactions }), {
       status: 200,

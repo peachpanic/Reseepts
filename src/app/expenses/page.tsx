@@ -96,6 +96,11 @@ export default function ExpensePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Add state for expenses
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [bills, setBills] = useState<any[]>([]);
+  const [totalExpense, setTotalExpense] = useState<number>(0);
+
   // File upload and OCR hooks
   const {
     filename,
@@ -147,6 +152,32 @@ export default function ExpensePage() {
       }
     };
     fetchCategories();
+  }, []);
+
+  // Fetch expenses on mount
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      try {
+        const res = await fetch("/api/expenses?id=1");
+        if (res.ok) {
+          const data = await res.json();
+          const transactions = data.transactions || [];
+
+          // Calculate total
+          const total = transactions.reduce(
+            (sum: number, t: any) => sum + Number(t.amount),
+            0
+          );
+          setTotalExpense(total);
+
+          // Set expenses
+          setExpenses(transactions);
+        }
+      } catch (err) {
+        console.error("Failed to fetch expenses:", err);
+      }
+    };
+    fetchExpenses();
   }, []);
 
   // Initialize camera when toggled
@@ -413,59 +444,11 @@ Important rules:
     }
   };
 
-  const expenses = [
-    {
-      id: "1",
-      category: "Food",
-      name: "Groceries",
-      date: "2025-10-01",
-      amount: 120.5,
-    },
-    {
-      id: "2",
-      category: "Rent",
-      name: "October Rent",
-      date: "2025-10-01",
-      amount: 850.0,
-    },
-    {
-      id: "3",
-      category: "Utilities",
-      name: "Electricity",
-      date: "2025-10-05",
-      amount: 65.25,
-    },
-  ];
-
-  const bills = [
-    {
-      id: "b1",
-      category: "Subscription",
-      name: "Netflix",
-      date: "2025-10-10",
-      amount: 15.99,
-    },
-    {
-      id: "b2",
-      category: "Loan",
-      name: "Car Loan",
-      date: "2025-10-15",
-      amount: 250.0,
-    },
-  ];
-
-  const handleBackToHome = () => {
-    router.push("/home");
-  };
-
-  const parsedOCRResult =
-    typeof ocrResult === "string" ? JSON.parse(ocrResult) : ocrResult;
-
   return (
     <div className="relative min-h-screen bg-[#429690]">
       <div className="flex justify-between items-center p-4 font-bold text-white text-2xl">
         <button
-          onClick={handleBackToHome}
+          onClick={() => router.push("/home")}
           className="flex items-center gap-2 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all active:scale-95 cursor-pointer group"
           aria-label="Go back to home"
         >
@@ -520,7 +503,9 @@ Important rules:
               >
                 <div className="mb-4 flex flex-col items-center">
                   <label className="text-gray-500">Total Expense</label>
-                  <h1 className="text-black text-4xl font-bold">$2,548</h1>
+                  <h1 className="text-black text-4xl font-bold">
+                    ₱{totalExpense.toFixed(2)}
+                  </h1>
                 </div>
                 <div className="flex flex-col items-center mb-4 text-[#549994] font-bold">
                   <button
@@ -554,9 +539,35 @@ Important rules:
                   </button>
                 </div>
                 <div className="text-black">
-                  {(activeTab === "expenses" ? expenses : bills).map((e) => (
-                    <ExpenseItem key={e.id} item={e} />
-                  ))}
+                  {(activeTab === "expenses" ? expenses : bills).length > 0 ? (
+                    (activeTab === "expenses" ? expenses : bills).map((e) => (
+                      <ExpenseItem key={e.expense_id} item={e} />
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="p-4 bg-gray-100 rounded-full mb-4">
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </div>
+                      <p className="text-gray-500 font-medium">
+                        No {activeTab} yet
+                      </p>
+                      <p className="text-gray-400 text-sm mt-1">
+                        Start tracking your spending
+                      </p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}

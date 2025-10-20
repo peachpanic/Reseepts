@@ -18,7 +18,7 @@ export interface Transaction {
   payment_method: string;
   expense_date: Date;
   created_at: Date;
-  Transaction_items?: TransactionItem[];
+  transaction_item?: TransactionItem[];
 }
 
 export interface TransactionItem {
