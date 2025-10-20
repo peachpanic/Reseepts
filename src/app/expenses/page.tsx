@@ -643,7 +643,7 @@ Important rules:
   };
 
   // Save speech transaction with robust error handling (like OCR handleSaveTransaction)
-  export const handleSaveSpeechFromReview = async ({
+  const handleSaveSpeechFromReview = async ({
     processedSpeechData,
     mutation,
     setSaveLoading,
