@@ -84,7 +84,7 @@ export const authOptions: NextAuthOptions = {
           if (!userData) {
             throw new Error("User not found");
           }
-delete my project
+
           if (
             await !bcrypt.compare(credentials.password, userData.password_hash)
           ) {
