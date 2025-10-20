@@ -6,6 +6,12 @@ interface InsightsResponse {
   practical_tips: string[];
 }
 
+interface ExpenseInferenceResponse {
+  item_name: string;
+  amount: number;
+  subcategory: string;
+}
+
 export const generateInsights = async (
   userData: UserData,
   model: any,
@@ -74,6 +80,79 @@ Top categories: ${topCats}`;
     return parsedInsights;
   } catch (error) {
     console.error("Failed to parse insights JSON:", error);
+    throw new Error(
+      `Invalid JSON response from AI model: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+};
+
+export const inferExpenseFromSentence = async (
+  sentence: string,
+  model: any
+): Promise<ExpenseInferenceResponse> => {
+  const prompt = `You are a financial data parser. Extract expense information from the user's natural language input.
+
+Your task:
+1) Identify the item/service purchased (item_name)
+2) Extract the amount spent (amount as a number, without currency symbols)
+3) Categorize the expense into one of these subcategories:
+   - Food & Dining (meals, restaurants, groceries, snacks)
+   - Transportation (commute, gas, parking, rides)
+   - Entertainment (movies, games, hobbies, subscriptions)
+   - Shopping (clothes, electronics, personal items)
+   - Bills & Utilities (rent, electricity, water, internet)
+   - Health & Wellness (medicine, gym, personal care)
+   - Education (books, courses, school supplies)
+   - Other (anything that doesn't fit above)
+
+Examples:
+- "I spent 150 on lunch at Jollibee" → item_name: "Lunch at Jollibee", amount: 150, subcategory: "Food & Dining"
+- "Grabbed coffee for 85 pesos" → item_name: "Coffee", amount: 85, subcategory: "Food & Dining"
+- "Paid 50 for jeepney fare" → item_name: "Jeepney fare", amount: 50, subcategory: "Transportation"
+- "Bought a shirt 500" → item_name: "Shirt", amount: 500, subcategory: "Shopping"
+
+Return ONLY valid JSON in this exact format:
+{
+  "item_name": "<descriptive name of the purchase>",
+  "amount": <numeric value only>,
+  "subcategory": "<one of the categories listed above>"
+}
+
+User input: "${sentence}"`;
+
+  const { text: response } = await generateText({
+    model,
+    prompt,
+  });
+
+  try {
+    // Extract JSON from response
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("No JSON found in response");
+    }
+
+    const parsedExpense: ExpenseInferenceResponse = JSON.parse(jsonMatch[0]);
+
+    // Validate required fields
+    if (
+      !parsedExpense.item_name ||
+      typeof parsedExpense.amount !== "number" ||
+      !parsedExpense.subcategory
+    ) {
+      throw new Error("Missing or invalid fields in JSON response");
+    }
+
+    // Validate amount is positive
+    if (parsedExpense.amount <= 0) {
+      throw new Error("Amount must be a positive number");
+    }
+
+    return parsedExpense;
+  } catch (error) {
+    console.error("Failed to parse expense inference JSON:", error);
     throw new Error(
       `Invalid JSON response from AI model: ${
         error instanceof Error ? error.message : "Unknown error"
