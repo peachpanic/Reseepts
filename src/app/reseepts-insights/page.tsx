@@ -10,14 +10,23 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { useInsights } from "@/hooks/useInsights";
+import Link from "next/link";
 
 const ReseeptsInsightsPage = () => {
   const [activeTab, setActiveTab] = useState("insights");
   const { data, isLoading, isError } = useInsights("1");
   return (
-    <div className="min-h-screen bg-white">
-      <div className="px-4">
-        <h4 className="text-2xl font-semibold">Reseepts Insights</h4>
+    <div className="min-h-screen bg-teal-900">
+      <div className="relative flex items-center justify-between px-4 pt-12">
+        <div className="w-10 flex justify-start">
+          <Link href="/insight">
+            <ChevronLeft className="text-white w-5 h-5 cursor-pointer" />
+          </Link>
+        </div>
+        <h4 className="text-2xl font-semibold text-white text-center flex-1">
+          Reseepts Insights
+        </h4>
+        <div className="w-10" /> {/* Empty div for spacing */}
       </div>
 
       {/* Main Content */}
@@ -58,7 +67,7 @@ const ReseeptsInsightsPage = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-slate-700">
+        {/* <div className="flex gap-2 mb-6 border-b border-slate-700">
           {["insights", "analysis", "signals"].map((tab) => (
             <button
               key={tab}
@@ -72,10 +81,10 @@ const ReseeptsInsightsPage = () => {
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
-        </div>
+        </div> */}
 
         {/* Positives Section */}
-        <div className="mb-8">
+        {/* <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-5 h-5 text-teal-400" />
             <h3 className="text-white text-lg font-bold">Positives</h3>
@@ -123,10 +132,10 @@ const ReseeptsInsightsPage = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Negatives Section */}
-        <div>
+        {/* <div>
           <div className="flex items-center gap-2 mb-4">
             <AlertCircle className="w-5 h-5 text-red-400" />
             <h3 className="text-white text-lg font-bold">Negatives</h3>
@@ -149,7 +158,7 @@ const ReseeptsInsightsPage = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

@@ -76,7 +76,9 @@ export default function InsightPage() {
   return (
     <>
       <div className="flex flex-others items-center justify-between px-4 py-4">
-        <ChevronLeftIcon />
+        <Link href={"/home"}>
+          <ChevronLeftIcon />
+        </Link>
         <span className="font-medium text-xl">Insights</span>
         <Link href="/reseepts-insights">
           <Sparkle className="text-teal-700" />{" "}
