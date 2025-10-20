@@ -25,3 +25,25 @@ export function useExpenses(userId?: string) {
     enabled: !!userId,
   });
 }
+
+export function useTotalMonthlyExpense(userId: string) {
+  return useQuery({
+    queryKey: ["totalMonthlyExpense", userId],
+    queryFn: () => fetchTotalMonthlyExpense(userId),
+    enabled: !!userId,
+  });
+}
+
+async function fetchTotalMonthlyExpense(userId: string): Promise<number> {
+  console.log("Fetching total monthly expense for userId:", userId);
+  const res = await fetch(`/api/expenses/total?id=${encodeURIComponent(userId)}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    console.error("Failed to fetch total monthly expense", res);
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error);
+  }
+  const json = await res.json();
+  return json.total as number;
+}

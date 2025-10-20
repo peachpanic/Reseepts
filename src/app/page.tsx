@@ -39,15 +39,23 @@ export default function Home() {
   }, [status]);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Hero - two column on desktop */}
-      <main
-        style={{ backgroundColor: "#3E7C78" }}
-        className="flex-1 flex items-center"
-      >
-        <div className="w-full max-w-6xl mx-auto p-6 md:p-12 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-          {/* LEFT: man + headline/motto */}
-          <div className="flex flex-col items-center md:items-start text-center md:text-left gap-6">
+    <div className="min-h-screen flex h-full flex-col">
+      <main className="flex h-full items-center bg-gradient-to-br from-teal-500 to-teal-700">
+        <div className="w-full h-full mx-auto grid grid-cols-1 md:grid-cols-2 items-center">
+          {/* left */}
+          <div className="flex flex-col justify-center items-center text-center h-full md:text-left md:bg-[#EEF8F7] rounded-tr-2xl rounded-br-2xl">
+            {/*  top left logo */}
+            {/* <div className="absolute top-6 left-6 md:top-8 md:left-8">
+              <Image
+                src="/reseepts.png"
+                alt="Reseepts Logo"
+                width={108}
+                height={108}
+                sizes="48px"
+                className="w-12 h-12 md:w-12 md:h-12"
+              />
+            </div>
+             */}
             <motion.div
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -99,11 +107,19 @@ export default function Home() {
               />
             </motion.div>
 
-            <div className="text-white space-y-3 px-4 md:px-0">
-              <h1 className="text-3xl md:text-5xl font-bold">
-                Welcome to Reseepts
-              </h1>
-              <p className="text-sm md:text-lg opacity-90 max-w-lg">
+            <div className="hidden md:block text-base space-y-3 px-4 md:px-0">
+              <motion.h1
+                className="text-3xl md:text-5xl font-bold"
+                initial={{ x: -40, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
+                Welcome to{" "}
+                <span className="bg-gradient-to-r from-teal-400 to-teal-600 bg-clip-text text-transparent">
+                  Reseepts
+                </span>
+              </motion.h1>
+              <p className="text-sm text-center md:text-lg opacity-90 max-w-lg">
                 Capture receipts, track spending, and get smart insights — all
                 in one place.
               </p>
@@ -128,32 +144,37 @@ export default function Home() {
               }}
             >
               {!showLoginForm ? (
-                <div className="space-y-5">
-                  <h2 className="text-2xl md:text-3xl font-semibold text-white">
-                    Get started
-                  </h2>
-                  <p className="text-sm text-white/90">
-                    Create an account to start tracking receipts and expenses.
-                  </p>
+                <div className=" space-y-2 pt-6 mt-6 md:pt-0">
+                  <motion.h1
+                    className="md:hidden text-3xl mt-6 md:mt-2 md:text-5xl font-bold"
+                    initial={{ x: -30, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
+                  >
+                    Welcome to{" "}
+                    <span className="bg-gradient-to-r from-teal-400 to-teal-600 bg-clip-text text-transparent">
+                      Reseepts
+                    </span>
+                  </motion.h1>
+                  <div className="flex flex-col items-center gap-4 mt-4">
+                    <div className="flex flex-row">
+                      <button
+                        onClick={() => setShowLoginForm(true)}
+                        className="w-full sm:w-auto bg-white text-[#3E7C78] px-8 py-3 rounded-xl text-lg font-semibold shadow-lg hover:scale-105 transform transition"
+                      >
+                        Get Started
+                      </button>
+                    </div>
 
-                  <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
-                    <button
-                      onClick={() => setShowLoginForm(true)}
-                      className="w-full sm:w-auto bg-white text-[#3E7C78] px-8 py-3 rounded-xl text-lg font-semibold shadow-lg hover:scale-105 transform transition"
-                    >
-                      Create account
-                    </button>
-
-                    <button
-                      onClick={() => setShowLoginForm(true)}
-                      className="w-full sm:w-auto border border-white/30 text-white px-6 py-3 rounded-xl text-md hover:bg-white/5"
-                    >
-                      Already have an account? Sign in
-                    </button>
-                  </div>
-
-                  <div className="mt-4 flex items-center justify-center">
-                    <GoogleButton />
+                    <div className="flex flex-row">
+                      <button
+                        onClick={() => setShowLoginForm(true)}
+                        className="w-full sm:w-auto text-base px-6 py-3 rounded-xl text-md hover:bg-white/5"
+                      >
+                        Already have an account?{" "}
+                        <span className="text-[#3E7C78]">Sign in</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
