@@ -15,7 +15,9 @@ type EventItem = {
 
 export default function Home() {
   const { data: session, status } = useSession();
-  const [showLoginForm, setShowLoginForm] = useState(false); // Add this state
+  const [events, setEvents] = useState<EventItem[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showLoginForm, setShowLoginForm] = useState(true);
 
   // useEffect(() => {
   //   const load = async () => {
@@ -166,7 +168,7 @@ export default function Home() {
                   </motion.p>
 
                   <div className="flex flex-col items-center gap-4 mt-12">
-                    <motion.button
+                    {/* <motion.button
                       onClick={() => setShowLoginForm(true)}
                       className="cursor-pointer not-only-of-type:w-full sm:w-auto bg-white text-teal-600 px-8 py-3 rounded-xl text-lg font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform transition duration-200"
                       initial={{ y: 10, opacity: 0 }}
@@ -178,7 +180,7 @@ export default function Home() {
                       }}
                     >
                       Get Started
-                    </motion.button>
+                    </motion.button> */}
 
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -203,7 +205,7 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl py-10 px-20 md:py-8 shadow-xl">
+                <div className="lg:bg-white rounded-2xl py-10 px-20 md:py-8 shadow-xl">
                   <div className="flex items-center justify-center mb-6">
                     <h3 className="text-2xl font-bold text-gray-900">
                       Sign in
@@ -247,7 +249,6 @@ export default function Home() {
                 </div>
               )}
             </div>
-            {/* remove clip-path on md+ screens */}
             <style>{`@media (min-width: 768px) { div[style] { clip-path: none !important; -webkit-clip-path: none !important; position: static !important; height: auto !important; width: auto !important; background: transparent !important; } }`}</style>
           </div>
         </div>

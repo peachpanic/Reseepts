@@ -34,7 +34,7 @@
 // }
 
 "use client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
 import { Transaction } from "@/lib/definitions";
 
 type TransactionFilters = {
@@ -107,5 +107,37 @@ export function useTopTransactions(userId?: string, period?: string, limit: numb
     limit,
     sortBy: 'amount',
     sortOrder: 'desc'
+  });
+}
+// adding mutation
+
+async function addTransaction(expense: Transaction) {
+  console.log("Adding transaction:", expense);
+  const res = await fetch("/api/expenses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ transaction: expense }),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json();
+    throw new Error(errorData.error || "Failed to add transaction");
+  }
+
+  const json = await res.json();
+  return json;
+}
+
+export default function useOCRData() {
+  const queryClient = new QueryClient();
+  return useMutation({
+    mutationFn: async (expense: any) => addTransaction(expense),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["transactions", variables.user_id],
+      });
+    },
   });
 }
