@@ -50,15 +50,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
-      user_id,
-      category_id,
-      amount,
-      description,
-      payment_method,
-      expense_date,
-      transaction_items,
-    } = body;
+    let { transaction, transaction_items } = body;
 
     // Validate required fields
     if (!user_id || !amount || !expense_date) {
@@ -183,10 +175,10 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (err) {
-    console.error("Error creating expense:", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Error in POST /api/expenses (RPC):", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 }
