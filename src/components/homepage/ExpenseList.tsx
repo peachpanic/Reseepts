@@ -57,7 +57,6 @@ export default function ExpenseList() {
                 />
               </svg>
             </div>
-            <p className="text-gray-500 font-medium">No expenses yet</p>
             <p className="text-gray-400 text-sm mt-1">
               Start tracking your spending
             </p>

@@ -9,10 +9,31 @@ import {
 } from "@/components/ui/card";
 import { signOut } from "next-auth/react";
 import { LogOut, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function Homepage() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [totalBalance, setTotalBalance] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const res = await fetch("/api/expenses?id=1");
+        if (res.ok) {
+          const data = await res.json();
+          const transactions = data.transactions || [];
+          const total = transactions.reduce(
+            (sum: number, t: any) => sum + Number(t.amount),
+            0
+          );
+          setTotalBalance(total);
+        }
+      } catch (err) {
+        console.error("Failed to fetch balance:", err);
+      }
+    };
+    fetchBalance();
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -65,17 +86,17 @@ export default function Homepage() {
           <CardHeader className="py-8 px-8 relative z-10">
             <div className="flex items-center justify-between mb-4">
               <CardTitle className="text-[#429690]/70 font-medium text-sm tracking-wide">
-                Total Balance
+                Total Expenses
               </CardTitle>
               <div className="p-2.5 bg-gradient-to-br from-[#429690]/20 to-transparent rounded-full">
                 <TrendingUp size={18} className="text-[#429690]" />
               </div>
             </div>
             <h1 className="font-bold text-5xl text-gray-900 tracking-tight">
-              ₱1,234.00
+              ₱{totalBalance.toFixed(2)}
             </h1>
             <p className="text-[#429690]/60 text-xs font-medium mt-3">
-              +2.5% from last month
+              Total expenses tracked
             </p>
             <CardDescription></CardDescription>
           </CardHeader>

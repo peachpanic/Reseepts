@@ -22,7 +22,6 @@
 //       .select("*")
 //       .eq("user_id", id)
 
-
 //     // calculate range based on period
 //     if (period) {
 //       const now = new Date();
@@ -94,7 +93,7 @@ export async function GET(req: NextRequest) {
       period,
       limit,
       sortBy,
-      sortOrder
+      sortOrder,
     });
 
     if (!id) {
@@ -106,7 +105,8 @@ export async function GET(req: NextRequest) {
     // Build base query with transaction_items joined
     let query = supabase
       .from("transactions")
-      .select(`
+      .select(
+        `
         expense_id,
         user_id,
         category_id,
@@ -120,7 +120,8 @@ export async function GET(req: NextRequest) {
           icon
         ),
         transaction_items:transaction_item!expense_id(*)
-      `)
+      `
+      )
       .eq("user_id", id);
 
     // Apply period filter if provided
@@ -130,7 +131,11 @@ export async function GET(req: NextRequest) {
 
       switch (period) {
         case "day":
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          startDate = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+          );
           break;
         case "week":
           const dayOfWeek = now.getDay();
@@ -144,7 +149,11 @@ export async function GET(req: NextRequest) {
           startDate = new Date(now.getFullYear(), 0, 1);
           break;
         default:
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          startDate = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+          );
       }
 
       query = query.gte("expense_date", startDate.toISOString());
@@ -152,7 +161,7 @@ export async function GET(req: NextRequest) {
 
     // Apply sorting
     const ascending = sortOrder === "asc";
-    
+
     // Map 'date' to 'expense_date' for consistency
     const sortColumn = sortBy === "date" ? "expense_date" : sortBy;
     query = query.order(sortColumn, { ascending });
@@ -166,11 +175,6 @@ export async function GET(req: NextRequest) {
 
     console.log("Fetched transactions:", transactions?.length || 0, "items");
 
-    // Add these console.logs
-    console.log("Query executed for user_id:", id);
-    console.log("Transactions data:", JSON.stringify(transactions, null, 2));
-    console.log("Query error:", error);
-
     if (error) {
       console.error("Supabase error:", error);
       return new Response(JSON.stringify({ error: error.message }), {
@@ -178,8 +182,6 @@ export async function GET(req: NextRequest) {
         headers: { "Content-Type": "application/json" },
       });
     }
-
-    console.log("Fetched transactions:", JSON.stringify(transactions, null, 2));
 
     return new Response(JSON.stringify({ transactions }), {
       status: 200,
@@ -197,6 +199,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     let { transaction, transaction_items } = body;
+    console.log("Received transaction to add:", JSON.stringify(transaction, null, 2));
 
     if (!transaction) {
       return new Response(

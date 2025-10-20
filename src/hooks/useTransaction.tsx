@@ -100,18 +100,10 @@ export function useTransactions(
   });
 }
 
-// Convenience hook for top spending (syntactic sugar)
-export function useTopTransactions(userId?: string, period?: string, limit: number = 10) {
-  return useTransactions(userId, {
-    period,
-    limit,
-    sortBy: 'amount',
-    sortOrder: 'desc'
-  });
-}
 // adding mutation
 
 async function addTransaction(expense: Transaction) {
+  console.log("yo mama")
   console.log("Adding transaction:", expense);
   const res = await fetch("/api/expenses", {
     method: "POST",
@@ -139,5 +131,15 @@ export default function useOCRData() {
         queryKey: ["transactions", variables.user_id],
       });
     },
+  });
+}
+
+// Convenience hook for top spending (syntactic sugar)
+export function useTopTransactions(userId?: string, period?: string, limit: number = 10) {
+  return useTransactions(userId, {
+    period,
+    limit,
+    sortBy: 'amount',
+    sortOrder: 'desc'
   });
 }

@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import ExpenseItem from "@/components/expenses/ExpenseItem";
+import ExpenseItemSkeleton from "@/components/expenses/ExpenseItemSkeleton";
 import CategoryDialog from "@/components/CategoryDialog";
 import { useOCR } from "@/hooks/useOCR";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { useTransactions } from "@/hooks/useTransaction";
+import useOCRData from "@/hooks/useTransaction";
 
 // Helper: remove Markdown code fences
 function stripCodeFences(text: string): string {
@@ -96,6 +99,14 @@ export default function ExpensePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const mutation = useOCRData();
+
+  // Add state for expenses
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [bills, setBills] = useState<any[]>([]);
+  const [totalExpense, setTotalExpense] = useState<number>(0);
+  const [expensesLoading, setExpensesLoading] = useState(true);
+
   // File upload and OCR hooks
   const {
     filename,
@@ -147,6 +158,35 @@ export default function ExpensePage() {
       }
     };
     fetchCategories();
+  }, []);
+
+  // Fetch expenses on mount
+  useEffect(() => {
+    const fetchExpenses = async () => {
+      setExpensesLoading(true);
+      try {
+        const res = await fetch("/api/expenses?id=1");
+        if (res.ok) {
+          const data = await res.json();
+          const transactions = data.transactions || [];
+
+          // Calculate total
+          const total = transactions.reduce(
+            (sum: number, t: any) => sum + Number(t.amount),
+            0
+          );
+          setTotalExpense(total);
+
+          // Set expenses
+          setExpenses(transactions);
+        }
+      } catch (err) {
+        console.error("Failed to fetch expenses:", err);
+      } finally {
+        setExpensesLoading(false);
+      }
+    };
+    fetchExpenses();
   }, []);
 
   // Initialize camera when toggled
@@ -250,7 +290,6 @@ export default function ExpensePage() {
         try {
           // Upload file
           await fileUploadHandler(file);
-          // OCR will be triggered by useEffect when filename changes
         } catch (error) {
           console.error("Error uploading file:", error);
           setIsLoading(false);
@@ -259,8 +298,6 @@ export default function ExpensePage() {
       reader.readAsDataURL(file);
     }
   };
-
-  // Add useEffect to trigger OCR after file upload
   useEffect(() => {
     const performOCR = async () => {
       if (filename && !ocrLoading && !ocrResult && isLoading) {
@@ -288,37 +325,60 @@ export default function ExpensePage() {
     setSaveLoading(true);
     setSaveSuccess(false);
 
-    try {
-      const response = await fetch("/api/expenses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dataToSave),
-      });
+    console.log("this is the data to save", dataToSave);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save transaction");
-      }
+    mutation.mutate(dataToSave, {
+      onSuccess: (result) => {
+        setSaveSuccess(true);
+        setSaveLoading(false);
+        try {
+          const tx = (result as any)?.transaction ?? result;
+          if (tx) setUpdatedOCRResult(tx);
+        } catch (e) {}
 
-      const result = await response.json();
-      console.log("Transaction saved:", result);
+        setTimeout(() => {
+          setScreen("main");
+          setCapturedImage(null);
+        }, 1500);
+      },
+      onError: (err: any) => {
+        console.error("Save error:", err);
+        alert("Failed to save transaction: " + (err?.message || String(err)));
+        setSaveLoading(false);
+      },
+    });
 
-      setSaveSuccess(true);
-      alert(
-        `Transaction saved successfully! Expense ID: ${result.transaction?.expense_id}`
-      );
-      setUpdatedOCRResult(result.transaction);
+    // try {
+    //   const response = await fetch("/api/expenses", {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify(dataToSave),
+    //   });
 
-      setTimeout(() => {
-        setScreen("main");
-        setCapturedImage(null);
-      }, 2000);
-    } catch (err) {
-      console.error("Save error:", err);
-      alert("Failed to save transaction: " + (err as Error).message);
-    } finally {
-      setSaveLoading(false);
-    }
+    //   if (!response.ok) {
+    //     const errorData = await response.json();
+    //     throw new Error(errorData.error || "Failed to save transaction");
+    //   }
+
+    //   const result = await response.json();
+    //   console.log("Transaction saved:", result);
+
+    //   setSaveSuccess(true);
+    //   alert(
+    //     `Transaction saved successfully! Expense ID: ${result.transaction?.expense_id}`
+    //   );
+    //   setUpdatedOCRResult(result.transaction);
+
+    //   setTimeout(() => {
+    //     setScreen("main");
+    //     setCapturedImage(null);
+    //   }, 2000);
+    // } catch (err) {
+    //   console.error("Save error:", err);
+    //   alert("Failed to save transaction: " + (err as Error).message);
+    // } finally {
+    //   setSaveLoading(false);
+    // }
   };
 
   const handleChatSubmit = async () => {
@@ -413,59 +473,11 @@ Important rules:
     }
   };
 
-  const expenses = [
-    {
-      id: "1",
-      category: "Food",
-      name: "Groceries",
-      date: "2025-10-01",
-      amount: 120.5,
-    },
-    {
-      id: "2",
-      category: "Rent",
-      name: "October Rent",
-      date: "2025-10-01",
-      amount: 850.0,
-    },
-    {
-      id: "3",
-      category: "Utilities",
-      name: "Electricity",
-      date: "2025-10-05",
-      amount: 65.25,
-    },
-  ];
-
-  const bills = [
-    {
-      id: "b1",
-      category: "Subscription",
-      name: "Netflix",
-      date: "2025-10-10",
-      amount: 15.99,
-    },
-    {
-      id: "b2",
-      category: "Loan",
-      name: "Car Loan",
-      date: "2025-10-15",
-      amount: 250.0,
-    },
-  ];
-
-  const handleBackToHome = () => {
-    router.push("/home");
-  };
-
-  const parsedOCRResult =
-    typeof ocrResult === "string" ? JSON.parse(ocrResult) : ocrResult;
-
   return (
     <div className="relative min-h-screen bg-[#429690]">
       <div className="flex justify-between items-center p-4 font-bold text-white text-2xl">
         <button
-          onClick={handleBackToHome}
+          onClick={() => router.push("/home")}
           className="flex items-center gap-2 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all active:scale-95 cursor-pointer group"
           aria-label="Go back to home"
         >
@@ -520,7 +532,9 @@ Important rules:
               >
                 <div className="mb-4 flex flex-col items-center">
                   <label className="text-gray-500">Total Expense</label>
-                  <h1 className="text-black text-4xl font-bold">$2,548</h1>
+                  <h1 className="text-black text-4xl font-bold">
+                    ₱{totalExpense.toFixed(2)}
+                  </h1>
                 </div>
                 <div className="flex flex-col items-center mb-4 text-[#549994] font-bold">
                   <button
@@ -554,9 +568,44 @@ Important rules:
                   </button>
                 </div>
                 <div className="text-black">
-                  {(activeTab === "expenses" ? expenses : bills).map((e) => (
-                    <ExpenseItem key={e.id} item={e} />
-                  ))}
+                  {expensesLoading ? (
+                    // Show skeleton loaders while loading
+                    <>
+                      <ExpenseItemSkeleton />
+                      <ExpenseItemSkeleton />
+                      <ExpenseItemSkeleton />
+                      <ExpenseItemSkeleton />
+                    </>
+                  ) : (activeTab === "expenses" ? expenses : bills).length >
+                    0 ? (
+                    (activeTab === "expenses" ? expenses : bills).map((e) => (
+                      <ExpenseItem key={e.expense_id} item={e} />
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="p-4 bg-gray-100 rounded-full mb-4">
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </div>
+                      <p className="text-gray-500 font-medium">
+                        No {activeTab} yet
+                      </p>
+                      <p className="text-gray-400 text-sm mt-1">
+                        Start tracking your spending
+                      </p>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
