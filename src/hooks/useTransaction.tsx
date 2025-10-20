@@ -5,7 +5,7 @@ import { Transaction } from "@/lib/definitions";
 type RawTransaction = any; // supabase returns loose JSON
 type TransactionWithItems = RawTransaction & { transaction_items?: any[] };
 
-async function fetchTransactions(userId: string) {
+async function fetchTransactions(userId: string)  {
   const res = await fetch(`/api/expenses?id=${encodeURIComponent(userId)}`, {
     cache: "no-store",
   });

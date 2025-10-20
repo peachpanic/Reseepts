@@ -45,12 +45,11 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    let { transaction, transaction_items } = body;
-    console.log("transaction raw data:", transaction);
+    const { transaction, transaction_items } = body;
 
-    if (!transaction) {
+    if (!transaction || !Array.isArray(transaction_items) || transaction_items.length === 0) {
       return new Response(
-        JSON.stringify({ error: "transaction is required" }),
+        JSON.stringify({ error: "transaction and non-empty transaction_items are required" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
@@ -58,25 +57,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Prefer explicit top-level transaction_items, otherwise accept transaction.line_items
-    const itemsToAttach =
-      Array.isArray(transaction_items) && transaction_items.length > 0
-        ? transaction_items
-        : Array.isArray(transaction?.line_items) &&
-          transaction.line_items.length > 0
-        ? transaction.line_items
-        : null;
+    // Attach the item list directly
+    const payload = { ...transaction, transaction_items };
 
-    // ensure we never pass line_items to a plain insert
-    if (transaction?.line_items) delete transaction.line_items;
+    console.log("Adding transaction with items via RPC:", JSON.stringify(payload, null, 2));
 
-    // Use RPC to perform atomic insert of transaction and its items
+    // Call the RPC with a single argument
     const { data, error } = await supabase.rpc(
       "insert_transaction_with_items",
-      {
-        p_transaction: transaction,
-        p_items: itemsToAttach,
-      }
+      { p_transaction: payload }
     );
 
     if (error) {
