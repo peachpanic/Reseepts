@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import ExpenseItem from "@/components/expenses/ExpenseItem";
+import CategoryDialog from "@/components/CategoryDialog";
 import { useOCR } from "@/hooks/useOCR";
 import { uploadImage } from "@/lib/services/ocrService";
 
@@ -15,6 +16,7 @@ export default function ExpensePage() {
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [ocrResults, setOcrResults] = useState<unknown>(null);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -169,10 +171,17 @@ export default function ExpensePage() {
           <i className="bx bx-chevron-left"></i>{" "}
         </button>
         <h2 className="text-white text-lg">Expenses</h2>
-        <button>
-          <i className="bx bx-bell"></i>{" "}
+        <button onClick={() => setIsCategoryDialogOpen(true)} className="cursor-ponter">
+          Category
         </button>
       </div>
+      
+      {/* Category Dialog */}
+      <CategoryDialog 
+        isOpen={isCategoryDialogOpen}
+        onClose={() => setIsCategoryDialogOpen(false)}
+      />
+      
       {/* Main Content */}
       <div className="bg-white rounded-lg p-4 min-h-screen">
         <div className="relative min-h-[300px]">

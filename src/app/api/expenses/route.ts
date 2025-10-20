@@ -170,10 +170,16 @@ export async function GET(req: NextRequest) {
       console.error("Supabase error:", error);
       return new Response(JSON.stringify({ error: error.message }), {
         status: 500,
+        headers: { "Content-Type": "application/json" },
       });
     }
 
-    return new Response(JSON.stringify({ transactions }), { status: 200 });
+    console.log("Fetched transactions:", JSON.stringify(transactions, null, 2));
+
+    return new Response(JSON.stringify({ transactions }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("Error fetching expenses:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {

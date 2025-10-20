@@ -33,9 +33,13 @@ export function TopSpendList({ transactions, isLoading }: TopSpendProps) {
           </Button>
         </span>
       </div>
-      <div className="mx-4">
-        {transactions?.map((transaction) => (
-          <ExpenseItem key={transaction.expense_id} expense={transaction} />
+      <div className="mx-4 space-y-2">
+        {transactions?.map((expense, index) => (
+          <ExpenseItem
+            key={expense.expense_id}
+            expense={expense}
+            className={index % 2 === 0 ? "bg-gray-100" : "bg-white"}
+          />
         ))}
       </div>
     </>

@@ -108,13 +108,14 @@ export async function POST(request: NextRequest) {
                     '  "user_id": <integer>,\n' +
                     '  "amount": <numeric>,\n' +
                     '  "description": "<merchant or summary>",\n' +
+                    '  "main_category": "<category from the provided list>",\n' +
                     '  "payment_method": "<cash | credit card | debit | other>",\n' +
                     '  "expense_date": "YYYY-MM-DD",\n' +
                     '  "created_at": "YYYY-MM-DDTHH:MM:SSZ",\n' +
                     '  "line_items": [\n' +
                     "    {\n" +
                     '      "item_name": "<product/service>",\n' +
-                    '      "category": "<category from the provided list>",\n' +
+                    '      "sub_category": "<category from the provided list>",\n' +
                     '      "quantity": <numeric>,\n' +
                     '      "unit_price": <numeric>,\n' +
                     '      "total_price": <numeric>\n' +

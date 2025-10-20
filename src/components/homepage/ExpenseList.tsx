@@ -19,9 +19,13 @@ export default function ExpenseList() {
           <Link href="/expenses">See all</Link>
         </span>
       </div>
-      <div className="mx-4">
-        {expenses?.map((expense) => (
-          <ExpenseItem key={expense.expense_id} expense={expense} />
+      <div className="mx-4 space-y-2">
+        {expenses?.map((expense, index) => (
+          <ExpenseItem
+            className={index % 2 === 0 ? "bg-gray-100" : "bg-white"}
+            key={expense.expense_id}
+            expense={expense}
+          />
         ))}
       </div>
     </>

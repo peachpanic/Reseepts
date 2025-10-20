@@ -1,23 +1,23 @@
-"use client";
-
 import { Transaction } from "@/lib/definitions";
 
-export default function ExpenseItem({ expense }: { expense: Transaction }) {
-  // Convert expense_date to Date object if it's a string
-  const formatDate = (date: Date | string) => {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj.toLocaleDateString(undefined, {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  };
+export default function ExpenseItem({
+  expense,
+  className,
+}: {
+  expense: Transaction;
+  className?: string;
+}) {
+  const isGray = className?.includes("bg-gray");
 
   return (
-    <div className="flex flex-row py-4 px-2 justify-between hover:bg-gray-100">
+    <div
+      className={`flex flex-row p-2 rounded-md border-black justify-between items-center ${
+        className || "bg-teal-700"
+      }`}
+    >
       <div className="flex flex-col">
-        <span className="font-medium">{expense.expense_id}</span>
-        <span className="text-gray-600 text-sm">
+        <span className="font-semibold text-black">{expense.description}</span>
+        <span className="text-sm text-gray-600">
           {new Date(expense.expense_date).toLocaleDateString("en-PH", {
             day: "numeric",
             month: "long",
@@ -25,7 +25,9 @@ export default function ExpenseItem({ expense }: { expense: Transaction }) {
           })}
         </span>
       </div>
-      <span className="text-red-600 font-bold">{expense.amount}</span>
+      <span className="font-bold text-red-400">
+        -₱{expense.amount.toFixed(2)}
+      </span>
     </div>
   );
 }
