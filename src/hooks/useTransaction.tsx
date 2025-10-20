@@ -114,33 +114,86 @@ export function useTransactions(
 // adding mutation
 
 async function addTransaction(expense: Transaction) {
-  console.log("yo mama");
-  console.log("Adding transaction:", expense);
+  console.log("=== ADD TRANSACTION DEBUG ===");
+  console.log("Original expense:", JSON.stringify(expense, null, 2));
+
+  // Ensure user_id is set to 1 and all required fields exist
+  const transactionToSend = {
+    user_id: 1,
+    category_id: expense.category_id || null,
+    amount: expense.amount || 0,
+    description: expense.description || "",
+    payment_method: expense.payment_method || "cash",
+    expense_date: expense.expense_date || new Date().toISOString(),
+    created_at: expense.created_at || new Date().toISOString(),
+    transaction_items: expense.transaction_items || [],
+  };
+
+  console.log(
+    "Transaction to send:",
+    JSON.stringify(transactionToSend, null, 2)
+  );
+  console.log("Amount value:", transactionToSend.amount);
+  console.log("Amount type:", typeof transactionToSend.amount);
+
   const res = await fetch("/api/expenses", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ transaction: expense }),
+    body: JSON.stringify(transactionToSend),
   });
 
+  const responseText = await res.text();
+  console.log("API Response:", responseText);
+
   if (!res.ok) {
-    const errorData = await res.json();
+    let errorData;
+    try {
+      errorData = JSON.parse(responseText);
+    } catch {
+      errorData = { error: responseText };
+    }
     throw new Error(errorData.error || "Failed to add transaction");
   }
 
-  const json = await res.json();
+  const json = JSON.parse(responseText);
   return json;
 }
 
 export default function useOCRData() {
   const queryClient = new QueryClient();
   return useMutation({
-    mutationFn: async (expense: any) => addTransaction(expense),
+    mutationFn: async (expense: any) => {
+      console.log("=== MUTATION DEBUG ===");
+      console.log(
+        "Expense passed to mutation:",
+        JSON.stringify(expense, null, 2)
+      );
+
+      // Ensure user_id is 1 and amount exists before calling addTransaction
+      const expenseWithUserId = {
+        ...expense,
+        user_id: 1,
+        amount: expense.amount || 0,
+      };
+
+      console.log(
+        "Expense with user_id:",
+        JSON.stringify(expenseWithUserId, null, 2)
+      );
+
+      return addTransaction(expenseWithUserId);
+    },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ["transactions", variables.user_id],
+        queryKey: ["transactions", 1],
       });
+    },
+    onError: (error: any) => {
+      console.error("=== MUTATION ERROR ===");
+      console.error("Error:", error);
+      console.error("Error message:", error?.message);
     },
   });
 }

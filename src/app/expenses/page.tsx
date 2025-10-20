@@ -315,70 +315,77 @@ export default function ExpensePage() {
   }, [filename]); // Trigger when filename changes
 
   const handleSaveTransaction = async () => {
-    const dataToSave = updatedOCRResult ?? ocrResult;
+    try {
+      console.log("=== SAVING TRANSACTION ===");
 
-    if (!dataToSave) {
-      alert("No transaction data to save. Perform OCR first.");
-      return;
+      // Use updatedOCRResult if available, otherwise use ocrResult
+      const dataToSave = updatedOCRResult || ocrResult;
+      console.log("Data to save:", JSON.stringify(dataToSave, null, 2));
+
+      if (!dataToSave) {
+        throw new Error("No OCR data available");
+      }
+
+      // Parse the OCR data - it might be a string or already an object
+      let parsedData;
+      try {
+        if (typeof dataToSave === "string") {
+          const cleanedText = stripCodeFences(dataToSave);
+          console.log("Cleaned text:", cleanedText);
+          parsedData = JSON.parse(cleanedText);
+        } else {
+          parsedData = dataToSave;
+        }
+        console.log("Parsed data:", JSON.stringify(parsedData, null, 2));
+      } catch (parseError) {
+        console.error("Failed to parse OCR data:", parseError);
+        console.error("Raw OCR data was:", dataToSave);
+        throw new Error("Failed to parse receipt data");
+      }
+
+      // Ensure the data has the required structure
+      const transactionToSave = {
+        user_id: 1,
+        category_id: parsedData.category_id || null,
+        amount: parsedData.amount || 0,
+        description: parsedData.description || parsedData.merchant_name || "",
+        payment_method: parsedData.payment_method || "cash",
+        expense_date:
+          parsedData.expense_date ||
+          parsedData.date ||
+          new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        transaction_items:
+          parsedData.transaction_items || parsedData.items || [],
+      };
+
+      console.log(
+        "Transaction to save:",
+        JSON.stringify(transactionToSave, null, 2)
+      );
+
+      setSaveLoading(true);
+      await mutation.mutateAsync(transactionToSave);
+
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setScreen("main");
+        setUpdatedOCRResult(null);
+        setUserInput("");
+        setCapturedImage(null);
+        setSaveSuccess(false);
+      }, 1500);
+    } catch (error: any) {
+      console.error("=== SAVE TRANSACTION ERROR ===");
+      console.error("Error:", error);
+      console.error("Error message:", error?.message);
+
+      alert(
+        "Failed to save transaction: " + (error?.message || "Unknown error")
+      );
+    } finally {
+      setSaveLoading(false);
     }
-
-    setSaveLoading(true);
-    setSaveSuccess(false);
-
-    console.log("this is the data to save", dataToSave);
-
-    mutation.mutate(dataToSave, {
-      onSuccess: (result) => {
-        setSaveSuccess(true);
-        setSaveLoading(false);
-        try {
-          const tx = (result as any)?.transaction ?? result;
-          if (tx) setUpdatedOCRResult(tx);
-        } catch (e) {}
-
-        setTimeout(() => {
-          setScreen("main");
-          setCapturedImage(null);
-        }, 1500);
-      },
-      onError: (err: any) => {
-        console.error("Save error:", err);
-        alert("Failed to save transaction: " + (err?.message || String(err)));
-        setSaveLoading(false);
-      },
-    });
-
-    // try {
-    //   const response = await fetch("/api/expenses", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify(dataToSave),
-    //   });
-
-    //   if (!response.ok) {
-    //     const errorData = await response.json();
-    //     throw new Error(errorData.error || "Failed to save transaction");
-    //   }
-
-    //   const result = await response.json();
-    //   console.log("Transaction saved:", result);
-
-    //   setSaveSuccess(true);
-    //   alert(
-    //     `Transaction saved successfully! Expense ID: ${result.transaction?.expense_id}`
-    //   );
-    //   setUpdatedOCRResult(result.transaction);
-
-    //   setTimeout(() => {
-    //     setScreen("main");
-    //     setCapturedImage(null);
-    //   }, 2000);
-    // } catch (err) {
-    //   console.error("Save error:", err);
-    //   alert("Failed to save transaction: " + (err as Error).message);
-    // } finally {
-    //   setSaveLoading(false);
-    // }
   };
 
   const handleChatSubmit = async () => {
