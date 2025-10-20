@@ -41,9 +41,12 @@ type TransactionFilters = {
   userId: string;
   period?: string;
   limit?: number;
-  sortBy?: 'amount' | 'date';
-  sortOrder?: 'asc' | 'desc';
-}
+  sortBy?: "amount" | "date";
+  sortOrder?: "asc" | "desc";
+};
+
+type RawTransaction = any; // supabase returns loose JSON
+type TransactionWithItems = RawTransaction & { transaction_items?: any[] };
 
 function transformTransaction(raw: any): Transaction {
   return {
@@ -57,8 +60,16 @@ function transformTransaction(raw: any): Transaction {
   };
 }
 
-async function fetchTransactions(filters: TransactionFilters): Promise<Transaction[]> {
-  const { userId, period, limit, sortBy = 'date', sortOrder = 'desc' } = filters;
+async function fetchTransactions(
+  filters: TransactionFilters
+): Promise<Transaction[]> {
+  const {
+    userId,
+    period,
+    limit,
+    sortBy = "date",
+    sortOrder = "desc",
+  } = filters;
 
   const params = new URLSearchParams({ id: userId });
   if (period) params.append("period", period);
@@ -88,8 +99,8 @@ export function useTransactions(
   options?: {
     period?: string;
     limit?: number;
-    sortBy?: 'amount' | 'date';
-    sortOrder?: 'asc' | 'desc';
+    sortBy?: "amount" | "date";
+    sortOrder?: "asc" | "desc";
   }
 ) {
   return useQuery({
@@ -103,7 +114,7 @@ export function useTransactions(
 // adding mutation
 
 async function addTransaction(expense: Transaction) {
-  console.log("yo mama")
+  console.log("yo mama");
   console.log("Adding transaction:", expense);
   const res = await fetch("/api/expenses", {
     method: "POST",
@@ -135,11 +146,15 @@ export default function useOCRData() {
 }
 
 // Convenience hook for top spending (syntactic sugar)
-export function useTopTransactions(userId?: string, period?: string, limit: number = 10) {
+export function useTopTransactions(
+  userId?: string,
+  period?: string,
+  limit: number = 10
+) {
   return useTransactions(userId, {
     period,
     limit,
-    sortBy: 'amount',
-    sortOrder: 'desc'
+    sortBy: "amount",
+    sortOrder: "desc",
   });
 }

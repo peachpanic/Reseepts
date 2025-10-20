@@ -96,7 +96,7 @@ export default function Home() {
               }}
             >
               {!showLoginForm ? (
-                <div className="space-y-2 pt-6 mt-6 md:pt-0">
+                <div className=" space-y-2 pt-6 mt-6 md:pt-0">
                   <motion.h1
                     className="md:hidden text-3xl mt-6 md:mt-2 md:text-5xl font-bold text-white"
                     initial={{ x: -30, opacity: 0 }}
@@ -179,6 +179,7 @@ export default function Home() {
                 </div>
               )}
             </div>
+            {/* remove clip-path on md+ screens */}
             <style>{`@media (min-width: 768px) { div[style] { clip-path: none !important; -webkit-clip-path: none !important; position: static !important; height: auto !important; width: auto !important; background: transparent !important; } }`}</style>
           </div>
         </div>
