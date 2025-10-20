@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, X } from "lucide-react";
+import CategoryDialog from "@/components/CategoryDialog";
 import ExpenseItem from "@/components/expenses/ExpenseItem";
 import ExpenseItemSkeleton from "@/components/expenses/ExpenseItemSkeleton";
-import CategoryDialog from "@/components/CategoryDialog";
-import { useOCR } from "@/hooks/useOCR";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { useTransactions } from "@/hooks/useTransaction";
+import { useOCR } from "@/hooks/useOCR";
 import useOCRData from "@/hooks/useTransaction";
+import { AnimatePresence, motion } from "framer-motion";
+import { ArrowLeft, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+
+import { useSpeechToText } from "@/hooks/useSpeechText"; // or your actual hook path
+import { Mic, MicOff } from "lucide-react";
 
 // Helper: remove Markdown code fences
 function stripCodeFences(text: string): string {
@@ -102,6 +104,15 @@ export default function ExpensePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Add these states to your component
+  const [isSpeechInputOpen, setIsSpeechInputOpen] = useState(false);
+  const [showSpeechJsonReview, setShowSpeechJsonReview] = useState(false);
+  const [processedSpeechData, setProcessedSpeechData] = useState<unknown>(null);
+  const [speechTranscript, setSpeechTranscript] = useState("");
+  // Add these states to your component
+  const [processedManualData, setProcessedManualData] = useState<unknown>(null);
+  const [showManualJsonReview, setShowManualJsonReview] = useState(false);
+
   // Manual input form state
   const [manualFormData, setManualFormData] = useState({
     description: "",
@@ -142,6 +153,132 @@ export default function ExpensePage() {
   >({});
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Initialize the speech hook
+  const {
+    transcript,
+    interimTranscript,
+    isListening,
+    isSupported: isSpeechSupported,
+    error: speechError,
+    startListening,
+    stopListening,
+    resetTranscript,
+    abortListening,
+  } = useSpeechToText();
+
+  // Handle speech input submission
+  const handleSpeechInputSubmit = async () => {
+    if (!transcript.trim()) {
+      alert("Please provide a voice input");
+      return;
+    }
+
+    setSpeechTranscript(transcript);
+    setChatLoading(true);
+
+    try {
+      const categoriesList = categories.map((cat) => cat.category_name);
+
+      // Create a prompt from the speech transcript
+      const systemInstruction = `You are an expense assistant that converts natural language voice input into a structured expense JSON.
+Parse the spoken expense information and return ONLY a single valid JSON object (no markdown, no code fences, no explanation).
+
+The JSON must match the database schema exactly:
+- transactions table: expense_id, user_id, category_id, amount, description, payment_method, expense_date, created_at
+- transaction_item table: id, item_name, amount, subcategory, expense_id, created_at
+
+Available categories from database:
+${JSON.stringify(categories, null, 2)}
+
+Category ID mapping:
+${JSON.stringify(categoryMapping, null, 2)}
+
+Important rules:
+1) Extract the expense amount, description/items, category, and date from the speech.
+2) The 'subcategory' field in transaction_items MUST be exactly one of: ${JSON.stringify(
+        categoriesList
+      )}.
+3) The 'category_id' MUST be the integer ID matching the expense type.
+4) NEVER return subcategory:null. Use the closest match if uncertain.
+5) Match category names EXACTLY as they appear (case-sensitive).
+6) Output only the complete JSON object and nothing else.
+7) **CRITICAL: Recalculate the top-level "amount" as the SUM of all transaction_items amounts.**
+8) Do NOT add extra fields. Only use: item_name, amount, subcategory for transaction_items.
+9) Keep user_id as 1 and use ISO 8601 timestamp format for created_at.
+10) Use today's date if no date is mentioned.
+11) Default payment_method to "cash" if not specified.`;
+
+      const userMessage = `Voice transcription:\n"${transcript}"\n\nPlease parse this spoken expense input and return a properly structured expense JSON object.`;
+
+      const res = await fetch("/api/gemini", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.0-flash-001",
+          messages: [
+            {
+              role: "system",
+              content: [{ type: "text", text: systemInstruction }],
+            },
+            { role: "user", content: [{ type: "text", text: userMessage }] },
+          ],
+        }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`Request failed (${res.status}): ${errText}`);
+      }
+
+      const data = await res.json();
+      const assistantText = extractTextFromResponse(data);
+
+      let parsed;
+      try {
+        parsed = JSON.parse(assistantText);
+      } catch (err) {
+        throw new Error(
+          "Assistant returned non-JSON response: " + assistantText
+        );
+      }
+
+      // Store processed data and show JSON review screen
+      setProcessedSpeechData(parsed);
+      setShowSpeechJsonReview(true);
+      setChatLoading(false);
+    } catch (err) {
+      alert("Error: " + (err as Error).message);
+      setChatLoading(false);
+    }
+  };
+
+  // Save from speech review
+  const handleSaveSpeechFromReview = async () => {
+    if (!processedSpeechData) return;
+
+    setSaveLoading(true);
+
+    mutation.mutate(processedSpeechData, {
+      onSuccess: () => {
+        setSaveSuccess(true);
+        setSaveLoading(false);
+        alert("Expense saved successfully!");
+        setShowSpeechJsonReview(false);
+        setIsSpeechInputOpen(false);
+        setProcessedSpeechData(null);
+        setSpeechTranscript("");
+        resetTranscript();
+        // Refresh expenses list
+        window.location.reload();
+      },
+      onError: (err: any) => {
+        console.error("Save error:", err);
+        alert("Failed to save expense: " + (err?.message || String(err)));
+        setSaveLoading(false);
+      },
+    });
+  };
 
   // Fetch categories on mount
   useEffect(() => {
@@ -519,181 +656,259 @@ Important rules:
           </svg>
         </button>
       </div>
-
       {/* Category Dialog */}
       <CategoryDialog
         isOpen={isCategoryDialogOpen}
         onClose={() => setIsCategoryDialogOpen(false)}
       />
 
-      {/* Manual Input Modal */}
-      <AnimatePresence>
-        {isManualInputOpen && (
+      {isManualInputOpen && !showManualJsonReview && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+          onClick={() => setIsManualInputOpen(false)}
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-            onClick={() => setIsManualInputOpen(false)}
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-2xl font-bold text-gray-900">
-                  Add Expense Manually
-                </h3>
-                <button
-                  onClick={() => setIsManualInputOpen(false)}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                >
-                  <X size={24} className="text-gray-500" />
-                </button>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-bold text-gray-900">
+                Add Expense Manually
+              </h3>
+              <button
+                onClick={() => setIsManualInputOpen(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              >
+                <X size={24} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={manualFormData.description}
+                  onChange={(e) =>
+                    setManualFormData({
+                      ...manualFormData,
+                      description: e.target.value,
+                    })
+                  }
+                  placeholder="e.g., Grocery shopping"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-text placeholder-gray-400"
+                />
               </div>
 
-              <div className="space-y-4">
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description <span className="text-red-500">*</span>
-                  </label>
+              {/* Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-gray-600 font-semibold">
+                    ₱
+                  </span>
                   <input
-                    type="text"
-                    value={manualFormData.description}
+                    type="number"
+                    value={manualFormData.amount}
                     onChange={(e) =>
                       setManualFormData({
                         ...manualFormData,
-                        description: e.target.value,
+                        amount: e.target.value,
                       })
                     }
-                    placeholder="e.g., Grocery shopping"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-text placeholder-gray-400"
-                  />
-                </div>
-
-                {/* Amount */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Amount <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2 text-gray-600 font-semibold">
-                      ₱
-                    </span>
-                    <input
-                      type="number"
-                      value={manualFormData.amount}
-                      onChange={(e) =>
-                        setManualFormData({
-                          ...manualFormData,
-                          amount: e.target.value,
-                        })
-                      }
-                      placeholder="0.00"
-                      step="0.01"
-                      min="0"
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-text placeholder-gray-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Category */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={manualFormData.category_id}
-                    onChange={(e) =>
-                      setManualFormData({
-                        ...manualFormData,
-                        category_id: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-pointer bg-white"
-                  >
-                    <option value="">Select a category</option>
-                    {categories.map((cat) => (
-                      <option key={cat.category_id} value={cat.category_id}>
-                        {cat.category_name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Payment Method */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Payment Method
-                  </label>
-                  <select
-                    value={manualFormData.payment_method}
-                    onChange={(e) =>
-                      setManualFormData({
-                        ...manualFormData,
-                        payment_method: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-pointer bg-white"
-                  >
-                    <option value="cash">Cash</option>
-                    <option value="card">Card</option>
-                    <option value="online">Online</option>
-                    <option value="check">Check</option>
-                  </select>
-                </div>
-
-                {/* Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    value={manualFormData.expense_date}
-                    onChange={(e) =>
-                      setManualFormData({
-                        ...manualFormData,
-                        expense_date: e.target.value,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-pointer"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-text placeholder-gray-400"
                   />
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3 mt-6">
-                <button
-                  onClick={() => setIsManualInputOpen(false)}
-                  className="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all cursor-pointer active:scale-95"
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={manualFormData.category_id}
+                  onChange={(e) =>
+                    setManualFormData({
+                      ...manualFormData,
+                      category_id: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-pointer bg-white"
                 >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleManualInputSubmit}
-                  disabled={saveLoading}
-                  className="flex-1 px-4 py-2 bg-[#429690] text-white font-semibold rounded-lg hover:bg-[#357a75] disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
-                >
-                  {saveLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    "Save Expense"
-                  )}
-                </button>
+                  <option value="">Select a category</option>
+                  {categories.map((cat) => (
+                    <option key={cat.category_id} value={cat.category_id}>
+                      {cat.category_name}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </motion.div>
+
+              {/* Payment Method */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Method
+                </label>
+                <select
+                  value={manualFormData.payment_method}
+                  onChange={(e) =>
+                    setManualFormData({
+                      ...manualFormData,
+                      payment_method: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-pointer bg-white"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Card</option>
+                  <option value="online">Online</option>
+                  <option value="check">Check</option>
+                </select>
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={manualFormData.expense_date}
+                  onChange={(e) =>
+                    setManualFormData({
+                      ...manualFormData,
+                      expense_date: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-pointer"
+                />
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setIsManualInputOpen(false)}
+                className="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all cursor-pointer active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleManualInputSubmit}
+                disabled={chatLoading}
+                className="flex-1 px-4 py-2 bg-[#429690] text-white font-semibold rounded-lg hover:bg-[#357a75] disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                {chatLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  "Review & Continue"
+                )}
+              </button>
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </motion.div>
+      )}
+      {showManualJsonReview && processedManualData && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          onClick={() => {
+            setShowManualJsonReview(false);
+            setProcessedManualData(null);
+          }}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 my-8"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">
+                Review Expense
+              </h3>
+              <button
+                onClick={() => {
+                  setShowManualJsonReview(false);
+                  setProcessedManualData(null);
+                }}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+              >
+                <X size={24} className="text-gray-500" />
+              </button>
+            </div>
 
+            {/* JSON Preview */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-gray-700">
+                  Extracted Data
+                </h4>
+                <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full cursor-default">
+                  Ready
+                </span>
+              </div>
+
+              <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-3 py-2 border-b border-gray-200 cursor-default">
+                  <span className="text-xs font-mono text-gray-600">JSON</span>
+                </div>
+                <pre className="text-xs text-gray-800 overflow-auto max-h-80 p-4 font-mono leading-relaxed cursor-text select-all">
+                  {JSON.stringify(processedManualData, null, 2)}
+                </pre>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowManualJsonReview(false);
+                  setProcessedManualData(null);
+                }}
+                className="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all cursor-pointer active:scale-95"
+              >
+                Back to Edit
+              </button>
+              <button
+                onClick={handleSaveManualFromReview}
+                disabled={saveLoading}
+                className="flex-1 px-4 py-2 bg-[#429690] text-white font-semibold rounded-lg hover:bg-[#357a75] disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                {saveLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  "Confirm & Save"
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
       {/* Main Content */}
       <div className="bg-white rounded-lg p-4 min-h-screen">
         <div className="relative min-h-[300px]">
@@ -715,9 +930,9 @@ Important rules:
                 </div>
                 <div className="flex flex-row w-full items-center justify-center gap-3 items-center mb-4">
                   {/* Scan Receipt Button */}
-                  <div className="flex flex-col items-center text-[#549994] font-bold">
+                  <div className="flex flex-col items-center text-[#429690] font-bold">
                     <button
-                      className="border-2 rounded-full p-2 px-4 text-xl focus:outline-none hover:bg-[#549994] hover:text-white hover:scale-110 transition-all active:scale-95 cursor-pointer"
+                      className="border-2 border-[#429690] rounded-full p-2 px-4 text-xl text-[#429690] focus:outline-none hover:bg-[#429690] hover:text-white hover:scale-110 transition-all active:scale-95 cursor-pointer"
                       onClick={() => setScreen("upload")}
                     >
                       +
@@ -735,8 +950,27 @@ Important rules:
                     </button>
                     <label className="cursor-default mt-2">Manual Entry</label>
                   </div>
-                </div>
 
+                  {/* Voice Entry Button */}
+                  <div className="flex flex-col items-center text-[#429690] font-bold">
+                    <button
+                      className="border-2 border-[#429690] rounded-full p-2 px-4 text-xl text-[#429690] focus:outline-none hover:bg-[#429690] hover:text-white hover:scale-110 transition-all active:scale-95 cursor-pointer"
+                      onClick={() => {
+                        setIsSpeechInputOpen(true);
+                        resetTranscript();
+                      }}
+                      disabled={!isSpeechSupported}
+                      title={
+                        !isSpeechSupported
+                          ? "Speech not supported"
+                          : "Add by voice"
+                      }
+                    >
+                      🎤
+                    </button>
+                    <label className="cursor-default mt-2">Voice Entry</label>
+                  </div>
+                </div>
                 <div className="bg-gray-200 flex p-2 gap-1 justify-around mb-4 rounded-xl">
                   <button
                     className={`w-full rounded-lg font-medium transition-all cursor-pointer hover:shadow-md active:scale-95 ${
@@ -801,7 +1035,6 @@ Important rules:
                 </div>
               </motion.div>
             )}
-
             {screen === "upload" && !isLoading && (
               <motion.div
                 key="upload"
@@ -897,7 +1130,6 @@ Important rules:
                 </button>
               </motion.div>
             )}
-
             {screen === "result" && !isLoading && (
               <motion.div
                 key="result"
@@ -1109,7 +1341,6 @@ Important rules:
                 </div>
               </motion.div>
             )}
-
             {isLoading && (
               <motion.div
                 key="loading"
@@ -1143,6 +1374,247 @@ Important rules:
                     ></div>
                   </div>
                 </div>
+              </motion.div>
+            )}
+            // Speech Input Modal
+            {isSpeechInputOpen && !showSpeechJsonReview && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+                onClick={() => {
+                  if (!isListening) {
+                    setIsSpeechInputOpen(false);
+                    resetTranscript();
+                  }
+                }}
+              >
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      Add Expense by Voice
+                    </h3>
+                    <button
+                      onClick={() => {
+                        if (isListening) abortListening();
+                        setIsSpeechInputOpen(false);
+                        resetTranscript();
+                      }}
+                      className="p-1 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <X size={24} className="text-gray-500" />
+                    </button>
+                  </div>
+
+                  {!isSpeechSupported ? (
+                    <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                      <p className="text-sm text-red-700">
+                        Speech recognition is not supported in your browser.
+                        Please try Chrome, Edge, or Safari.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Microphone Section */}
+                      <div className="mb-6">
+                        <div className="flex flex-col items-center gap-4">
+                          <button
+                            onClick={
+                              isListening
+                                ? stopListening
+                                : () =>
+                                    startListening({
+                                      continuous: false,
+                                      interimResults: true,
+                                    })
+                            }
+                            className={`p-8 rounded-full transition-all active:scale-95 ${
+                              isListening
+                                ? "bg-red-500 hover:bg-red-600 shadow-lg animate-pulse"
+                                : "bg-[#429690] hover:bg-[#357a75] shadow-md"
+                            }`}
+                          >
+                            {isListening ? (
+                              <MicOff size={40} className="text-white" />
+                            ) : (
+                              <Mic size={40} className="text-white" />
+                            )}
+                          </button>
+                          <div className="text-center">
+                            <p className="text-sm font-medium text-gray-700">
+                              {isListening
+                                ? "Listening..."
+                                : "Click to start recording"}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {isListening
+                                ? "Say your expense details"
+                                : "Speak your expense naturally"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Error Display */}
+                      {speechError && (
+                        <div className="p-3 bg-red-50 rounded-lg border border-red-200 mb-4">
+                          <p className="text-sm text-red-700">{speechError}</p>
+                        </div>
+                      )}
+
+                      {/* Transcript Display */}
+                      <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Transcript
+                        </label>
+                        <div className="bg-gray-50 rounded-lg border border-gray-300 p-4 min-h-24 max-h-40 overflow-y-auto">
+                          <p className="text-sm text-gray-700">
+                            {transcript || (
+                              <span className="text-gray-400 italic">
+                                Your speech will appear here...
+                              </span>
+                            )}
+                          </p>
+                          {interimTranscript && (
+                            <p className="text-sm text-gray-500 italic mt-2">
+                              {interimTranscript}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => {
+                            if (isListening) abortListening();
+                            setIsSpeechInputOpen(false);
+                            resetTranscript();
+                          }}
+                          className="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all cursor-pointer active:scale-95"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleSpeechInputSubmit}
+                          disabled={!transcript.trim() || chatLoading}
+                          className="flex-1 px-4 py-2 bg-[#429690] text-white font-semibold rounded-lg hover:bg-[#357a75] disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
+                        >
+                          {chatLoading ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                              <span>Processing...</span>
+                            </>
+                          ) : (
+                            "Review & Continue"
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </motion.div>
+              </motion.div>
+            )}
+            {showSpeechJsonReview && processedSpeechData && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+                onClick={() => {
+                  setShowSpeechJsonReview(false);
+                  setProcessedSpeechData(null);
+                }}
+              >
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 my-8"
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      Review Voice Expense
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setShowSpeechJsonReview(false);
+                        setProcessedSpeechData(null);
+                      }}
+                      className="p-1 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <X size={24} className="text-gray-500" />
+                    </button>
+                  </div>
+
+                  {/* Transcript */}
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-xs font-medium text-blue-900 mb-2">
+                      Voice Input:
+                    </p>
+                    <p className="text-sm text-blue-800 italic">
+                      "{speechTranscript}"
+                    </p>
+                  </div>
+
+                  {/* JSON Preview */}
+                  <div className="mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Extracted Expense Data
+                      </h4>
+                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full cursor-default">
+                        Ready
+                      </span>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                      <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-3 py-2 border-b border-gray-200 cursor-default">
+                        <span className="text-xs font-mono text-gray-600">
+                          JSON
+                        </span>
+                      </div>
+                      <pre className="text-xs text-gray-800 overflow-auto max-h-80 p-4 font-mono leading-relaxed cursor-text select-all">
+                        {JSON.stringify(processedSpeechData, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setShowSpeechJsonReview(false);
+                        setProcessedSpeechData(null);
+                      }}
+                      className="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all cursor-pointer active:scale-95"
+                    >
+                      Back to Voice
+                    </button>
+                    <button
+                      onClick={handleSaveSpeechFromReview}
+                      disabled={saveLoading}
+                      className="flex-1 px-4 py-2 bg-[#429690] text-white font-semibold rounded-lg hover:bg-[#357a75] disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      {saveLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                          <span>Saving...</span>
+                        </>
+                      ) : (
+                        "Confirm & Save"
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
               </motion.div>
             )}
           </AnimatePresence>
