@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import ExpenseItem from "@/components/expenses/ExpenseItem";
 import ExpenseItemSkeleton from "@/components/expenses/ExpenseItemSkeleton";
 import CategoryDialog from "@/components/CategoryDialog";
@@ -86,6 +86,8 @@ function extractTextFromResponse(data: unknown): string {
   }
 }
 
+// ... (keep all existing helper functions and component code the same until return statement)
+
 export default function ExpensePage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<"expenses" | "bills">("expenses");
@@ -95,19 +97,27 @@ export default function ExpensePage() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [ocrResults, setOcrResults] = useState<unknown>(null);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [isManualInputOpen, setIsManualInputOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Manual input form state
+  const [manualFormData, setManualFormData] = useState({
+    description: "",
+    amount: "",
+    category_id: "",
+    payment_method: "cash",
+    expense_date: new Date().toISOString().split("T")[0],
+  });
+
   const mutation = useOCRData();
 
-  // Add state for expenses
   const [expenses, setExpenses] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
   const [totalExpense, setTotalExpense] = useState<number>(0);
   const [expensesLoading, setExpensesLoading] = useState(true);
 
-  // File upload and OCR hooks
   const {
     filename,
     loading: uploadLoading,
@@ -170,14 +180,12 @@ export default function ExpensePage() {
           const data = await res.json();
           const transactions = data.transactions || [];
 
-          // Calculate total
           const total = transactions.reduce(
             (sum: number, t: any) => sum + Number(t.amount),
             0
           );
           setTotalExpense(total);
 
-          // Set expenses
           setExpenses(transactions);
         }
       } catch (err) {
@@ -228,12 +236,10 @@ export default function ExpensePage() {
     if (capturedImage) {
       setIsLoading(true);
       try {
-        // Perform OCR on captured image
         const base64Data = capturedImage.split(",")[1];
         const blob = new Blob([atob(base64Data)], { type: "image/png" });
         const file = new File([blob], "receipt.png", { type: "image/png" });
 
-        // Upload file first
         const formData = new FormData();
         formData.append("file", file);
         const uploadRes = await fetch("/api/upload", {
@@ -244,11 +250,7 @@ export default function ExpensePage() {
 
         if (uploadData.filename) {
           console.log("File uploaded:", uploadData.filename);
-
-          // Use the OCR hook to perform OCR
           await performOCROnImage(uploadData.filename);
-
-          // Move to result screen immediately after OCR completes
           setIsLoading(false);
           setScreen("result");
         }
@@ -288,7 +290,6 @@ export default function ExpensePage() {
 
         setIsLoading(true);
         try {
-          // Upload file
           await fileUploadHandler(file);
         } catch (error) {
           console.error("Error uploading file:", error);
@@ -298,6 +299,7 @@ export default function ExpensePage() {
       reader.readAsDataURL(file);
     }
   };
+
   useEffect(() => {
     const performOCR = async () => {
       if (filename && !ocrLoading && !ocrResult && isLoading) {
@@ -312,7 +314,7 @@ export default function ExpensePage() {
       }
     };
     performOCR();
-  }, [filename]); // Trigger when filename changes
+  }, [filename]);
 
   const handleSaveTransaction = async () => {
     const dataToSave = updatedOCRResult ?? ocrResult;
@@ -347,38 +349,60 @@ export default function ExpensePage() {
         setSaveLoading(false);
       },
     });
+  };
 
-    // try {
-    //   const response = await fetch("/api/expenses", {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify(dataToSave),
-    //   });
+  const handleManualInputSubmit = async () => {
+    if (
+      !manualFormData.description ||
+      !manualFormData.amount ||
+      !manualFormData.category_id
+    ) {
+      alert("Please fill in all required fields");
+      return;
+    }
 
-    //   if (!response.ok) {
-    //     const errorData = await response.json();
-    //     throw new Error(errorData.error || "Failed to save transaction");
-    //   }
+    setSaveLoading(true);
 
-    //   const result = await response.json();
-    //   console.log("Transaction saved:", result);
+    const payload = {
+      description: manualFormData.description,
+      amount: parseFloat(manualFormData.amount),
+      category_id: parseInt(manualFormData.category_id),
+      payment_method: manualFormData.payment_method,
+      expense_date: manualFormData.expense_date,
+      transaction_items: [
+        {
+          item_name: manualFormData.description,
+          amount: parseFloat(manualFormData.amount),
+          subcategory:
+            categories.find(
+              (c) => c.category_id === parseInt(manualFormData.category_id)
+            )?.category_name || "Other",
+        },
+      ],
+    };
 
-    //   setSaveSuccess(true);
-    //   alert(
-    //     `Transaction saved successfully! Expense ID: ${result.transaction?.expense_id}`
-    //   );
-    //   setUpdatedOCRResult(result.transaction);
-
-    //   setTimeout(() => {
-    //     setScreen("main");
-    //     setCapturedImage(null);
-    //   }, 2000);
-    // } catch (err) {
-    //   console.error("Save error:", err);
-    //   alert("Failed to save transaction: " + (err as Error).message);
-    // } finally {
-    //   setSaveLoading(false);
-    // }
+    mutation.mutate(payload, {
+      onSuccess: () => {
+        setSaveSuccess(true);
+        setSaveLoading(false);
+        alert("Expense saved successfully!");
+        setIsManualInputOpen(false);
+        setManualFormData({
+          description: "",
+          amount: "",
+          category_id: "",
+          payment_method: "cash",
+          expense_date: new Date().toISOString().split("T")[0],
+        });
+        // Refresh expenses list
+        window.location.reload();
+      },
+      onError: (err: any) => {
+        console.error("Save error:", err);
+        alert("Failed to save expense: " + (err?.message || String(err)));
+        setSaveLoading(false);
+      },
+    });
   };
 
   const handleChatSubmit = async () => {
@@ -517,6 +541,174 @@ Important rules:
         onClose={() => setIsCategoryDialogOpen(false)}
       />
 
+      {/* Manual Input Modal */}
+      <AnimatePresence>
+        {isManualInputOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+            onClick={() => setIsManualInputOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Add Expense Manually
+                </h3>
+                <button
+                  onClick={() => setIsManualInputOpen(false)}
+                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                >
+                  <X size={24} className="text-gray-500" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={manualFormData.description}
+                    onChange={(e) =>
+                      setManualFormData({
+                        ...manualFormData,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., Grocery shopping"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-text placeholder-gray-400"
+                  />
+                </div>
+
+                {/* Amount */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Amount <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-gray-600 font-semibold">
+                      ₱
+                    </span>
+                    <input
+                      type="number"
+                      value={manualFormData.amount}
+                      onChange={(e) =>
+                        setManualFormData({
+                          ...manualFormData,
+                          amount: e.target.value,
+                        })
+                      }
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-text placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Category */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={manualFormData.category_id}
+                    onChange={(e) =>
+                      setManualFormData({
+                        ...manualFormData,
+                        category_id: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-pointer bg-white"
+                  >
+                    <option value="">Select a category</option>
+                    {categories.map((cat) => (
+                      <option key={cat.category_id} value={cat.category_id}>
+                        {cat.category_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Payment Method */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={manualFormData.payment_method}
+                    onChange={(e) =>
+                      setManualFormData({
+                        ...manualFormData,
+                        payment_method: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-pointer bg-white"
+                  >
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="online">Online</option>
+                    <option value="check">Check</option>
+                  </select>
+                </div>
+
+                {/* Date */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={manualFormData.expense_date}
+                    onChange={(e) =>
+                      setManualFormData({
+                        ...manualFormData,
+                        expense_date: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#429690] focus:border-transparent cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setIsManualInputOpen(false)}
+                  className="flex-1 px-4 py-2 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all cursor-pointer active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleManualInputSubmit}
+                  disabled={saveLoading}
+                  className="flex-1 px-4 py-2 bg-[#429690] text-white font-semibold rounded-lg hover:bg-[#357a75] disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  {saveLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    "Save Expense"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Main Content */}
       <div className="bg-white rounded-lg p-4 min-h-screen">
         <div className="relative min-h-[300px]">
@@ -536,15 +728,30 @@ Important rules:
                     ₱{totalExpense.toFixed(2)}
                   </h1>
                 </div>
-                <div className="flex flex-col items-center mb-4 text-[#549994] font-bold">
-                  <button
-                    className="border-2 rounded-full p-2 px-4 text-xl focus:outline-none hover:bg-[#549994] hover:text-white hover:scale-110 transition-all active:scale-95 cursor-pointer"
-                    onClick={() => setScreen("upload")}
-                  >
-                    +
-                  </button>
-                  <label className="cursor-default mt-2">Add</label>
+                <div className="flex flex-col gap-3 items-center mb-4">
+                  {/* Scan Receipt Button */}
+                  <div className="flex flex-col items-center text-[#549994] font-bold">
+                    <button
+                      className="border-2 rounded-full p-2 px-4 text-xl focus:outline-none hover:bg-[#549994] hover:text-white hover:scale-110 transition-all active:scale-95 cursor-pointer"
+                      onClick={() => setScreen("upload")}
+                    >
+                      +
+                    </button>
+                    <label className="cursor-default mt-2">Scan Receipt</label>
+                  </div>
+
+                  {/* Manual Input Button */}
+                  <div className="flex flex-col items-center text-[#429690] font-bold">
+                    <button
+                      className="border-2 border-[#429690] rounded-full p-2 px-4 text-xl text-[#429690] focus:outline-none hover:bg-[#429690] hover:text-white hover:scale-110 transition-all active:scale-95 cursor-pointer"
+                      onClick={() => setIsManualInputOpen(true)}
+                    >
+                      ✎
+                    </button>
+                    <label className="cursor-default mt-2">Manual Entry</label>
+                  </div>
                 </div>
+
                 <div className="bg-gray-200 flex p-2 gap-1 justify-around mb-4 rounded-xl">
                   <button
                     className={`w-full rounded-lg font-medium transition-all cursor-pointer hover:shadow-md active:scale-95 ${
@@ -567,9 +774,9 @@ Important rules:
                     Upcoming Bills
                   </button>
                 </div>
+
                 <div className="text-black">
                   {expensesLoading ? (
-                    // Show skeleton loaders while loading
                     <>
                       <ExpenseItemSkeleton />
                       <ExpenseItemSkeleton />
