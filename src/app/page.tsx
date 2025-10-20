@@ -15,6 +15,7 @@ type EventItem = {
 
 export default function Home() {
   const { data: session, status } = useSession();
+  const [showLoginForm, setShowLoginForm] = useState(false); // Add this state
 
   // useEffect(() => {
   //   const load = async () => {
@@ -209,60 +210,15 @@ export default function Home() {
                     </h3>
                   </div>
 
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const form = e.currentTarget as HTMLFormElement & {
-                        email?: HTMLInputElement;
-                        password?: HTMLInputElement;
-                      };
-                      const email = (
-                        form.elements.namedItem("email") as HTMLInputElement
-                      )?.value;
-                      const password = (
-                        form.elements.namedItem("password") as HTMLInputElement
-                      )?.value;
-                      signIn("credentials", { email, password });
-                    }}
-                    className="space-y-4"
-                  >
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email
-                      </label>
-                      <input
-                        name="email"
-                        type="email"
-                        required
-                        placeholder=""
-                        className="w-full px-4 py-3 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Password
-                      </label>
-                      <input
-                        name="password"
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        className="w-full px-4 py-3 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="cursor-pointer w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition duration-200 mt-6"
-                    >
-                      Sign in
-                    </button>
-                  </form>
+                  {/* Use the LoginForm component */}
+                  <LoginForm />
 
                   {/* OR separator */}
                   <div className="flex items-center gap-3 my-6">
                     <span className="flex-1 h-px bg-gray-200" />
-                    <span className="text-xs text-gray-500 font-medium">OR</span>
+                    <span className="text-xs text-gray-500 font-medium">
+                      OR
+                    </span>
                     <span className="flex-1 h-px bg-gray-200" />
                   </div>
 
@@ -289,40 +245,7 @@ export default function Home() {
                     </button>
                   </div>
                 </div>
-
-                {/* Use the LoginForm component for validation and structure */}
-                <div className="mt-4">
-                  <LoginForm />
-                </div>
-
-                {/* OR separator */}
-                <div className="flex items-center gap-3 my-2 text-black">
-                  <span className="flex-1 h-px bg-black" />
-                  <span className="text-xs text-black">OR</span>
-                  <span className="flex-1 h-px bg-black" />
-                </div>
-
-                <div className="flex items-center justify-center">
-                  <div className="mt-4 flex items-center justify-center">
-                    <GoogleButton />
-                  </div>
-                </div>
-
-                {/* <div className="text-center text-sm mt-2">
-                  <span className="text-white/80">Don’t have an account? </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowLoginForm(false);
-                      // you can navigate to signup page or toggle a signup state
-                    }}
-                    className="underline text-white"
-                  >
-                    Sign up
-                  </button>
-                </div> */}
-              </div>
-              {/* )} */}
+              )}
             </div>
             {/* remove clip-path on md+ screens */}
             <style>{`@media (min-width: 768px) { div[style] { clip-path: none !important; -webkit-clip-path: none !important; position: static !important; height: auto !important; width: auto !important; background: transparent !important; } }`}</style>

@@ -3,7 +3,7 @@
 import SpendChart from "@/components/insight/SpendChart";
 import { TimePeriodFilter } from "@/components/insight/TimePeriodFilter";
 import { TopSpendList } from "@/components/insight/TopSpendList";
-import { ChevronLeftIcon, Download } from "lucide-react";
+import { ChevronLeftIcon, Download, Sparkle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function InsightPage() {
@@ -17,8 +17,8 @@ export default function InsightPage() {
     <>
       <div className="flex flex-others items-center justify-between px-4 py-4">
         <ChevronLeftIcon />
-        <span className="font-medium text-xl">Statistics</span>
-        <Download />
+        <span className="font-medium text-xl">Insights</span>
+        <Sparkle className="text-teal-700" />{" "}
       </div>
       <div className="space-y-4">
         <TimePeriodFilter value={period} onChange={setPeriod} />

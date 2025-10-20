@@ -1,0 +1,18 @@
+services:
+  nextjs:
+    build: .
+    container_name: nextjs_app
+    restart: always
+    expose:
+      - 3000
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_server
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - nextjs
