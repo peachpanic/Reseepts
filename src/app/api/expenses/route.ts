@@ -20,6 +20,11 @@ export async function GET(req: NextRequest) {
       .select("*, transaction_item(*)")
       .eq("user_id", id);
 
+    // Add these console.logs
+    console.log("Query executed for user_id:", id);
+    console.log("Transactions data:", JSON.stringify(transactions, null, 2));
+    console.log("Query error:", error);
+
     if (error) {
       console.log("Error fetching transactions:", error);
       return new Response(JSON.stringify({ error: error.message }), {
@@ -65,8 +70,10 @@ export async function POST(req: NextRequest) {
 
     // Normalize payment_method to match database constraint
     // Common values: 'cash', 'credit', 'debit', 'bank transfer', 'e-wallet', etc.
-    let normalizedPaymentMethod = (payment_method || "cash").toLowerCase().trim();
-    
+    let normalizedPaymentMethod = (payment_method || "cash")
+      .toLowerCase()
+      .trim();
+
     // Map common variations to database-accepted values
     if (normalizedPaymentMethod.includes("credit")) {
       normalizedPaymentMethod = "credit";
@@ -110,17 +117,19 @@ export async function POST(req: NextRequest) {
     console.log("Created transaction with expense_id:", expenseId);
 
     // Insert transaction items if provided
-    if (transaction_items && Array.isArray(transaction_items) && transaction_items.length > 0) {
-      const itemsToInsert = transaction_items.map((item: {
-        item_name: string;
-        amount: number;
-        subcategory: string;
-      }) => ({
-        expense_id: expenseId,
-        item_name: item.item_name,
-        amount: item.amount,
-        subcategory: item.subcategory,
-      }));
+    if (
+      transaction_items &&
+      Array.isArray(transaction_items) &&
+      transaction_items.length > 0
+    ) {
+      const itemsToInsert = transaction_items.map(
+        (item: { item_name: string; amount: number; subcategory: string }) => ({
+          expense_id: expenseId,
+          item_name: item.item_name,
+          amount: item.amount,
+          subcategory: item.subcategory,
+        })
+      );
 
       console.log("Inserting transaction items with expense_id:", expenseId);
       console.log("Items to insert:", JSON.stringify(itemsToInsert, null, 2));
@@ -143,7 +152,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      console.log("Successfully inserted items:", JSON.stringify(insertedItems, null, 2));
+      console.log(
+        "Successfully inserted items:",
+        JSON.stringify(insertedItems, null, 2)
+      );
     }
 
     // Fetch the complete transaction with items
@@ -161,7 +173,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log("Complete transaction with items:", JSON.stringify(completeTransaction, null, 2));
+    console.log(
+      "Complete transaction with items:",
+      JSON.stringify(completeTransaction, null, 2)
+    );
 
     return NextResponse.json(
       { transaction: completeTransaction },
