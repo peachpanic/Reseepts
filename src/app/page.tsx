@@ -141,7 +141,9 @@ export default function Home() {
               ) : (
                 <div className="lg:bg-white rounded-2xl py-8 px-8 md:py-8 md:px-12 lg:px-20 md:shadow-xl max-w-md mx-auto">
                   <div className="flex items-center justify-center mb-6">
-                    <h3 className="text-2xl font-bold text-white">Sign in</h3>
+                    <h3 className="text-2xl font-bold text-white md:text-teal-600">
+                      Sign in
+                    </h3>
                   </div>
 
                   {/* Use the LoginForm component */}
