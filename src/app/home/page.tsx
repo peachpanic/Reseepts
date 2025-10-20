@@ -8,12 +8,33 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { LogOut, TrendingUp } from "lucide-react";
-import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
 
 export default function Homepage() {
   const { data: session, status } = useSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [totalBalance, setTotalBalance] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const res = await fetch("/api/expenses?id=1");
+        if (res.ok) {
+          const data = await res.json();
+          const transactions = data.transactions || [];
+          const total = transactions.reduce(
+            (sum: number, t: any) => sum + Number(t.amount),
+            0
+          );
+          setTotalBalance(total);
+        }
+      } catch (err) {
+        console.error("Failed to fetch balance:", err);
+      }
+    };
+    fetchBalance();
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -73,10 +94,10 @@ export default function Homepage() {
               </div>
             </div>
             <h1 className="font-bold text-5xl text-gray-900 tracking-tight">
-              ₱1,234.00
+              ₱{totalBalance.toFixed(2)}
             </h1>
             <p className="text-[#429690]/60 text-xs font-medium mt-3">
-              +2.5% from last month
+              Total expenses tracked
             </p>
             <CardDescription></CardDescription>
           </CardHeader>

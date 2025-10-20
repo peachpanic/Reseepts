@@ -1,6 +1,7 @@
 "use client";
 
 import { useTopTransactions } from "@/hooks/useTopTransaction";
+import { useTransactions } from "@/hooks/useTransaction";
 import { useSession } from "next-auth/react";
 import {
   Area,
@@ -25,10 +26,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-const SpendChart = (period: string) => {
+const SpendChart = ({ period } : { period: string }) => {
   const { data: session, status } = useSession();
 
-  const { data: expenses, isLoading } = useTopTransactions("1", period);
+  const { data: expenses, isLoading } = useTransactions("1", { period, sortBy: 'date', sortOrder: 'asc' })
 
   const transformData =
     expenses?.map((expense) => ({

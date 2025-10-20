@@ -21,7 +21,7 @@ export default function ExpenseList() {
             {expenses?.length || 0} recent transaction
             {expenses?.length !== 1 ? "s" : ""}
           </p>
-        </div>
+        </div>  
         <Link
           href="/expenses"
           className="group flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-[#429690] to-teal-500 text-white rounded-full font-semibold text-sm hover:shadow-md transition-all active:scale-95 hover:scale-105 cursor-pointer"

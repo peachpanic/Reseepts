@@ -67,8 +67,6 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       description,
       category_id,
       payment_method,
-      source,
-      emotion_tag,
       expense_date
     })
     .eq('expense_id', expense_id);
