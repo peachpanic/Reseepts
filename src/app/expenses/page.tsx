@@ -463,7 +463,7 @@ Important rules:
 
   return (
     <div className="relative min-h-screen bg-[#429690]">
-      <div className="flex justify-between items-center p-4 mb-4 font-bold text-white text-2xl">
+      <div className="flex justify-between items-center p-4 font-bold text-white text-2xl">
         <button
           onClick={handleBackToHome}
           className="flex items-center gap-2 p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition-all active:scale-95 cursor-pointer group"
@@ -474,7 +474,7 @@ Important rules:
             className="text-white group-hover:text-teal-600 transition-colors"
           />
         </button>
-        <h2 className="text-white text-lg flex-1 text-center">Expenses</h2>
+        <h2 className="text-white text-3xl flex-1 text-center">Expenses</h2>
         <button
           onClick={() => setIsCategoryDialogOpen(true)}
           className="flex items-center gap-2 px-4 py-2 bg-white bg-opacity-20 rounded-full hover:bg-opacity-30 transition-all active:scale-95 cursor-pointer font-semibold text-sm shadow-md hover:shadow-lg group"
@@ -524,29 +524,29 @@ Important rules:
                 </div>
                 <div className="flex flex-col items-center mb-4 text-[#549994] font-bold">
                   <button
-                    className="border-2 rounded-full p-2 px-4 text-xl focus:outline-none"
+                    className="border-2 rounded-full p-2 px-4 text-xl focus:outline-none hover:bg-[#549994] hover:text-white hover:scale-110 transition-all active:scale-95 cursor-pointer"
                     onClick={() => setScreen("upload")}
                   >
                     +
                   </button>
-                  <label>Add</label>
+                  <label className="cursor-default mt-2">Add</label>
                 </div>
                 <div className="bg-gray-200 flex p-2 gap-1 justify-around mb-4 rounded-xl">
                   <button
-                    className={`w-full rounded-lg font-medium ${
+                    className={`w-full rounded-lg font-medium transition-all cursor-pointer hover:shadow-md active:scale-95 ${
                       activeTab === "expenses"
-                        ? "bg-white text-gray-900"
-                        : "bg-gray-200 text-gray-500"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "bg-gray-200 text-gray-500 hover:bg-gray-300"
                     }`}
                     onClick={() => setActiveTab("expenses")}
                   >
                     Expenses
                   </button>
                   <button
-                    className={`w-full rounded-lg font-medium ${
+                    className={`w-full rounded-lg font-medium transition-all cursor-pointer hover:shadow-md active:scale-95 ${
                       activeTab === "bills"
-                        ? "bg-white text-gray-900"
-                        : "bg-gray-200 text-gray-500"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "bg-gray-200 text-gray-500 hover:bg-gray-300"
                     }`}
                     onClick={() => setActiveTab("bills")}
                   >
@@ -571,25 +571,25 @@ Important rules:
                 className="w-full flex flex-col items-center justify-center bg-white"
               >
                 <h2 className="text-xl font-semibold mb-4">Upload Receipt</h2>
-                <div className="bg-yellow-300 rounded-lg p-4 mb-6">
+                <div className="bg-yellow-300 rounded-lg p-4 mb-6 shadow-md hover:shadow-lg transition-shadow">
                   {isCameraActive ? (
                     <video
                       ref={videoRef}
                       autoPlay
                       playsInline
-                      className="h-[55vh] w-full object-cover rounded-lg"
+                      className="h-[55vh] w-full object-cover rounded-lg cursor-default"
                     />
                   ) : capturedImage ? (
                     <img
                       src={capturedImage}
                       alt="Captured Receipt"
-                      className="h-[55vh] w-full object-cover rounded-lg"
+                      className="h-[55vh] w-full object-cover rounded-lg cursor-pointer"
                     />
                   ) : (
                     <img
                       src="/images/components/receipt.svg"
                       alt="Receipt"
-                      className="h-[55vh] object-contain"
+                      className="h-[55vh] object-contain cursor-pointer"
                     />
                   )}
                 </div>
@@ -598,13 +598,13 @@ Important rules:
                 {!isCameraActive && !capturedImage && (
                   <div className="flex flex-col gap-1 mb-3">
                     <button
-                      className="border rounded-full px-8 py-2 text-[#429690] font-semibold mb-2"
+                      className="border-2 border-[#429690] rounded-full px-8 py-2 text-[#429690] font-semibold mb-2 hover:bg-[#429690] hover:text-white transition-all active:scale-95 cursor-pointer hover:shadow-md"
                       onClick={() => setIsCameraActive(true)}
                     >
                       Scan Receipt
                     </button>
                     <button
-                      className="border rounded-full px-8 py-2 text-[#429690] font-semibold"
+                      className="border-2 border-[#429690] rounded-full px-8 py-2 text-[#429690] font-semibold hover:bg-[#429690] hover:text-white transition-all active:scale-95 cursor-pointer hover:shadow-md"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       Choose File
@@ -614,7 +614,7 @@ Important rules:
                       type="file"
                       accept="image/*"
                       onChange={handleFileUpload}
-                      className="hidden"
+                      className="hidden cursor-pointer"
                     />
                   </div>
                 )}
@@ -622,7 +622,7 @@ Important rules:
                 {isCameraActive && (
                   <div>
                     <button
-                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-teal-600 hover:bg-teal-800 transition-colors"
+                      className="border-2 border-teal-600 rounded-full px-8 py-2 text-white font-semibold mb-4 bg-teal-600 hover:bg-teal-700 hover:shadow-md transition-all active:scale-95 cursor-pointer"
                       onClick={handleCapture}
                     >
                       Capture
@@ -631,16 +631,16 @@ Important rules:
                 )}
 
                 {capturedImage && (
-                  <div>
+                  <div className="flex flex-col gap-2">
                     <button
-                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-teal-600 hover:bg-teal-800 transition-colors"
+                      className="border-2 border-teal-600 rounded-full px-8 py-2 text-white font-semibold bg-teal-600 hover:bg-teal-700 hover:shadow-md transition-all active:scale-95 cursor-pointer"
                       onClick={handleUpload}
                     >
                       Upload
                     </button>
 
                     <button
-                      className="border rounded-full px-8 py-2 text-white font-semibold mb-4 bg-teal-600 hover:bg-teal-800 transition-colors"
+                      className="border-2 border-teal-600 rounded-full px-8 py-2 text-white font-semibold bg-teal-600 hover:bg-teal-700 hover:shadow-md transition-all active:scale-95 cursor-pointer"
                       onClick={handleReset}
                     >
                       Reset
@@ -649,7 +649,7 @@ Important rules:
                 )}
 
                 <button
-                  className="border rounded-full px-8 py-2 text-[#429690] font-semibold"
+                  className="border-2 border-[#429690] rounded-full px-8 py-2 text-[#429690] font-semibold mt-4 hover:bg-[#429690] hover:text-white transition-all active:scale-95 cursor-pointer hover:shadow-md"
                   onClick={handleCancel}
                 >
                   Cancel
@@ -664,90 +664,204 @@ Important rules:
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -40 }}
                 transition={{ duration: 0.3 }}
-                className="w-full flex flex-col bg-white"
+                className="w-full flex flex-col bg-white p-4"
               >
                 <h2 className="text-2xl font-semibold mb-6 text-black text-center">
                   Receipt Summary
                 </h2>
 
                 {/* Receipt Preview */}
-                <div className="bg-gray-100 rounded-lg p-4 mb-6 max-h-48 overflow-y-auto">
-                  {capturedImage && (
-                    <img
-                      src={capturedImage}
-                      alt="Receipt Preview"
-                      className="w-full object-contain rounded-lg"
-                    />
-                  )}
+                <div className="mb-6">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">
+                    Receipt Image
+                  </h3>
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 shadow-inner border border-gray-200 hover:shadow-md transition-shadow">
+                    {capturedImage && (
+                      <div className="relative">
+                        <img
+                          src={capturedImage}
+                          alt="Receipt Preview"
+                          className="w-full max-h-64 object-contain rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                        />
+                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-gray-700 shadow-sm">
+                          Scanned
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* OCR Results */}
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-black mb-4">
-                    OCR Results
-                  </h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-700">
+                      {updatedOCRResult ? "Updated Results" : "Extracted Data"}
+                    </h3>
+                    {(updatedOCRResult || ocrResult) && !ocrLoading && (
+                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full cursor-default">
+                        Ready
+                      </span>
+                    )}
+                  </div>
+
                   {ocrError && (
-                    <div className="p-4 bg-red-50 rounded-lg border border-red-200 mb-4">
-                      <p className="text-sm text-red-700">Error: {ocrError}</p>
+                    <div className="p-4 bg-red-50 rounded-lg border-l-4 border-red-400 mb-4">
+                      <div className="flex items-center">
+                        <svg
+                          className="w-5 h-5 text-red-400 mr-2 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <p className="text-sm text-red-700 font-medium cursor-default">
+                          Error: {ocrError}
+                        </p>
+                      </div>
                     </div>
                   )}
+
                   {ocrLoading && (
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <p className="text-sm text-blue-700">Processing OCR...</p>
+                    <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-600 border-t-transparent mr-3 flex-shrink-0"></div>
+                        <p className="text-sm text-blue-700 font-medium cursor-default">
+                          Processing OCR...
+                        </p>
+                      </div>
                     </div>
                   )}
-                  {ocrResult && !ocrLoading && (
-                    <>
-                      <pre className="text-xs text-gray-600 overflow-auto max-h-64 bg-white p-2 rounded border border-gray-200 whitespace-pre-wrap break-words">
-                        {typeof ocrResult === "string"
-                          ? JSON.stringify(JSON.parse(ocrResult), null, 2)
-                          : JSON.stringify(
-                              updatedOCRResult ?? ocrResult,
-                              null,
-                              2
-                            )}
+
+                  {(updatedOCRResult || ocrResult) && !ocrLoading && (
+                    <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+                      <div className="bg-gradient-to-r from-gray-100 to-gray-50 px-3 py-2 border-b border-gray-200 cursor-default">
+                        <span className="text-xs font-mono text-gray-600">
+                          JSON
+                        </span>
+                      </div>
+                      <pre className="text-xs text-gray-800 overflow-auto max-h-64 p-4 font-mono leading-relaxed cursor-text select-all">
+                        {JSON.stringify(
+                          updatedOCRResult ??
+                            (typeof ocrResult === "string"
+                              ? JSON.parse(ocrResult)
+                              : ocrResult),
+                          null,
+                          2
+                        )}
                       </pre>
-                    </>
+                    </div>
                   )}
                 </div>
 
                 {/* Chat to Augment */}
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-black mb-2">
-                    Chat to Augment
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">
+                    Modify Transaction
                   </h3>
-                  <textarea
-                    value={userInput}
-                    onChange={(e) => setUserInput(e.target.value)}
-                    placeholder="e.g. Add: Apple 2x 200 or Remove: Apple"
-                    rows={3}
-                    className="w-full p-2 border border-gray-300 rounded-lg mb-2 text-gray-700"
-                  />
-                  <button
-                    onClick={handleChatSubmit}
-                    disabled={chatLoading}
-                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-semibold mb-2"
-                  >
-                    {chatLoading ? "Processing..." : "Send to Assistant"}
-                  </button>
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <textarea
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        placeholder="e.g., Add Apple 2x 200 or Remove Apple"
+                        rows={4}
+                        className="w-full p-3 border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-[#429690] focus:border-transparent transition-all resize-none placeholder-gray-400 cursor-text hover:border-gray-400"
+                      />
+                      <div className="absolute bottom-3 right-3 text-xs text-gray-400 cursor-default">
+                        {userInput.length}/500
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleChatSubmit}
+                      disabled={chatLoading || !userInput.trim()}
+                      className="w-full px-4 py-3 bg-[#429690] text-white rounded-lg hover:bg-[#357a75] disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer font-semibold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 active:scale-95 enabled:hover:scale-105"
+                    >
+                      {chatLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                          <span>Processing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M13 10V3L4 14h7v7l9-11h-7z"
+                            />
+                          </svg>
+                          <span>Update with AI</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 pt-4 border-t border-gray-200">
                   <button
                     onClick={handleSaveTransaction}
                     disabled={saveLoading}
-                    className="w-full border-2 border-[#429690] text-[#429690] font-semibold py-3 rounded-lg hover:bg-[#429690] hover:text-white transition-colors disabled:opacity-50"
+                    className="w-full bg-[#429690] text-white font-semibold py-3.5 rounded-lg hover:bg-[#357a75] transition-all disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer shadow-sm hover:shadow-md flex items-center justify-center gap-2 active:scale-95 enabled:hover:scale-105"
                   >
-                    {saveLoading
-                      ? "Saving..."
-                      : saveSuccess
-                      ? "✓ Saved!"
-                      : "Confirm & Save"}
+                    {saveLoading ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                        <span>Saving...</span>
+                      </>
+                    ) : saveSuccess ? (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span>Saved Successfully!</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                        <span>Confirm & Save</span>
+                      </>
+                    )}
                   </button>
                   <button
-                    className="w-full border border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-100 transition-colors"
-                    onClick={() => setScreen("upload")}
+                    className="w-full border-2 border-gray-300 text-gray-700 font-semibold py-3 rounded-lg hover:bg-gray-50 transition-all cursor-pointer active:scale-95 hover:scale-105 hover:border-gray-400"
+                    onClick={() => {
+                      setScreen("upload");
+                      setUpdatedOCRResult(null);
+                      setUserInput("");
+                    }}
                   >
                     Back to Upload
                   </button>
