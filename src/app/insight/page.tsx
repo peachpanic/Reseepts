@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { TopSpendList } from '@/components/insight/TopSpendList';
-import { ChevronLeftIcon, Download } from 'lucide-react';
-import { TimePeriodFilter } from '@/components/insight/TimePeriodFilter';
-import { useState, useEffect } from 'react';
+import SpendChart from "@/components/insight/SpendChart";
+import { TimePeriodFilter } from "@/components/insight/TimePeriodFilter";
+import { TopSpendList } from "@/components/insight/TopSpendList";
+import { ChevronLeftIcon, Download, Sparkle } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function InsightPage() {
-  const [period, setPeriod] = useState<string>("day")
-
+  const [period, setPeriod] = useState<string>("day");
 
   useEffect(() => {
     console.log("Selected period: ", period);
@@ -16,32 +16,18 @@ export default function InsightPage() {
 
   return (
     <>
-      {/* <AreaChart
-        style={{ width: '100%', maxWidth: '700px', maxHeight: '70vh', aspectRatio: 1.618 }}
-        responsive
-        data={expenses}
-        margin={{
-          top: 20,
-          right: 0,
-          left: 0,
-          bottom: 0,
-        }}
-      >
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="name" />
-        <YAxis width="auto" />
-        <Tooltip />
-        <Area type="monotone" dataKey="uv" stroke="#8884d8" fill="#8884d8" />
-      </AreaChart> */}
-
-      <div className="flex flex-others items-center justify-between px-4 py-8">
+      <div className="flex flex-others items-center justify-between px-4 py-4">
         <ChevronLeftIcon />
-        <span className='font-medium text-xl'>Statistics</span>
-        <Download />
+        <span className="font-medium text-xl">Insights</span>
+        <Link href="/reseepts-insights">
+          <Sparkle className="text-teal-700" />{" "}
+        </Link>
       </div>
-      
-      <TimePeriodFilter value={period} onChange={setPeriod} />
-      <TopSpendList period={period}/>
+      <div className="space-y-4">
+        <TimePeriodFilter value={period} onChange={setPeriod} />
+        <SpendChart period={period} />
+        <TopSpendList period={period} />
+      </div>
     </>
   );
 }

@@ -4,6 +4,7 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import GoogleButton from "@/components/GoogleButton";
 import { motion } from "motion/react";
 import Image from "next/image";
+import { LoginForm } from "@/components/login/LoginForm"; // Add this import
 
 type EventItem = {
   id?: string;
@@ -18,25 +19,25 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [showLoginForm, setShowLoginForm] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      if (status === "authenticated") {
-        setError(null);
-        const res = await fetch("/api/calendar/events");
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          setError(j.error || `Failed with ${res.status}`);
-          setEvents(null);
-          return;
-        }
-        const items = (await res.json()) as EventItem[];
-        setEvents(items);
-      } else {
-        setEvents(null);
-      }
-    };
-    load();
-  }, [status]);
+  // useEffect(() => {
+  //   const load = async () => {
+  //     if (status === "authenticated") {
+  //       setError(null);
+  //       const res = await fetch("/api/calendar/events");
+  //       if (!res.ok) {
+  //         const j = await res.json().catch(() => ({}));
+  //         setError(j.error || `Failed with ${res.status}`);
+  //         setEvents(null);
+  //         return;
+  //       }
+  //       const items = (await res.json()) as EventItem[];
+  //       setEvents(items);
+  //     } else {
+  //       setEvents(null);
+  //     }
+  //   };
+  //   load();
+  // }, [status]);
 
   return (
     <div className="min-h-screen flex h-full flex-col">
@@ -211,55 +212,8 @@ export default function Home() {
                     </h3>
                   </div>
 
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const form = e.currentTarget as HTMLFormElement & {
-                        email?: HTMLInputElement;
-                        password?: HTMLInputElement;
-                      };
-                      const email = (
-                        form.elements.namedItem("email") as HTMLInputElement
-                      )?.value;
-                      const password = (
-                        form.elements.namedItem("password") as HTMLInputElement
-                      )?.value;
-                      signIn("credentials", { email, password });
-                    }}
-                    className="space-y-4"
-                  >
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email
-                      </label>
-                      <input
-                        name="email"
-                        type="email"
-                        required
-                        placeholder=""
-                        className="w-full px-4 py-3 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Password
-                      </label>
-                      <input
-                        name="password"
-                        type="password"
-                        required
-                        placeholder="••••••••"
-                        className="w-full px-4 py-3 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition"
-                      />
-                    </div>
-
-                    <button
-                      type="submit"
-                      className="cursor-pointer w-full bg-gradient-to-r from-teal-500 to-teal-600 text-white py-3 rounded-lg font-semibold hover:shadow-lg transform hover:scale-105 transition duration-200 mt-6"
-                    >
-                      Sign in
-                    </button>
-                  </form>
+                  {/* Use the LoginForm component */}
+                  <LoginForm />
 
                   {/* OR separator */}
                   <div className="flex items-center gap-3 my-6">
@@ -299,37 +253,6 @@ export default function Home() {
           </div>
         </div>
       </main>
-
-      {/* Secondary content: calendar/events when signed in */}
-      {/* <div className="p-6">
-        {status === "loading" && <p>Loading session…</p>}
-        {error && <p className="text-red-600">Error: {error}</p>}
-
-        {status === "authenticated" && (
-          <section>
-            <h2 className="font-medium mb-2">Upcoming events</h2>
-            {events === null ? (
-              <p>Loading events…</p>
-            ) : events.length === 0 ? (
-              <p>No upcoming events found.</p>
-            ) : (
-              <ul className="space-y-2">
-                {events.map((e) => {
-                  const start = e.start?.dateTime || e.start?.date;
-                  return (
-                    <li key={e.id} className="rounded border p-3">
-                      <div className="font-medium">
-                        {e.summary || "(no title)"}
-                      </div>
-                      <div className="text-sm text-gray-600">{start}</div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-        )}
-      </div> */}
     </div>
   );
 }

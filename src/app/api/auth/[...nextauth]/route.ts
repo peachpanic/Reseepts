@@ -120,18 +120,28 @@ export const authOptions: NextAuthOptions = {
           .eq("email", token.email)
           .single();
 
+        let userId: string;
         if (!response.data) {
-          await supabase.from("users").insert({
-            email: token.email,
-            full_name: token.name,
-            profile_url: token.picture,
-            password_hash: "",
-            provider: "google",
-          });
+          // Insert new user and get the inserted user_id
+          const insertResponse = await supabase
+            .from("users")
+            .insert({
+              email: token.email,
+              full_name: token.name,
+              profile_url: token.picture,
+              password_hash: "",
+              provider: "google",
+            })
+            .select("user_id")
+            .single();
+          userId = insertResponse.data?.user_id.toString();
+        } else {
+          userId = response.data.user_id.toString();
         }
 
         return {
           ...token,
+          sub: userId,
           access_token: account.access_token,
           refresh_token: account.refresh_token,
           expires_at: account.expires_at
@@ -156,6 +166,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       (session as any).accessToken = token.access_token;
       (session as any).error = token.error;
+      (session as any).user.id = token.sub; // Add user ID to session
       return session;
     },
   },

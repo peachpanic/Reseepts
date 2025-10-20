@@ -1,5 +1,3 @@
-"use client";
-
 import { Transaction } from "@/lib/definitions";
 import { ShoppingCart, Calendar, DollarSign } from "lucide-react";
 

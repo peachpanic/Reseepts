@@ -32,6 +32,7 @@ export default function RootLayout({
         <Providers>
           <div className="grid grid-rows-[1fr_auto]">
             <div className="min-h-screen">{children}</div>
+            <BottomNav />
           </div>
         </Providers>
       </body>

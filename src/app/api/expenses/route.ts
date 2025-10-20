@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
     const { data: transactions, error } = await supabase
       .from("transactions")
       .select("*, transaction_item(*)")
-      .eq("user_id", id);
+      .eq("user_id", id)
+      .order("expense_date", { ascending: false });
 
     // Add these console.logs
     console.log("Query executed for user_id:", id);
