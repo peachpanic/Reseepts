@@ -254,31 +254,6 @@ Important rules:
   };
 
   // Save from speech review
-  const handleSaveSpeechFromReview = async () => {
-    if (!processedSpeechData) return;
-
-    setSaveLoading(true);
-
-    mutation.mutate(processedSpeechData, {
-      onSuccess: () => {
-        setSaveSuccess(true);
-        setSaveLoading(false);
-        alert("Expense saved successfully!");
-        setShowSpeechJsonReview(false);
-        setIsSpeechInputOpen(false);
-        setProcessedSpeechData(null);
-        setSpeechTranscript("");
-        resetTranscript();
-        // Refresh expenses list
-        window.location.reload();
-      },
-      onError: (err: any) => {
-        console.error("Save error:", err);
-        alert("Failed to save expense: " + (err?.message || String(err)));
-        setSaveLoading(false);
-      },
-    });
-  };
 
   // Fetch categories on mount
   useEffect(() => {
@@ -454,11 +429,76 @@ Important rules:
   }, [filename]);
 
   const handleSaveTransaction = async () => {
-    const dataToSave = updatedOCRResult ?? ocrResult;
+    try {
+      console.log("=== SAVING TRANSACTION ===");
 
-    if (!dataToSave) {
-      alert("No transaction data to save. Perform OCR first.");
-      return;
+      // Use updatedOCRResult if available, otherwise use ocrResult
+      const dataToSave = updatedOCRResult || ocrResult;
+      console.log("Data to save:", JSON.stringify(dataToSave, null, 2));
+
+      if (!dataToSave) {
+        throw new Error("No OCR data available");
+      }
+
+      // Parse the OCR data - it might be a string or already an object
+      let parsedData;
+      try {
+        if (typeof dataToSave === "string") {
+          const cleanedText = stripCodeFences(dataToSave);
+          console.log("Cleaned text:", cleanedText);
+          parsedData = JSON.parse(cleanedText);
+        } else {
+          parsedData = dataToSave;
+        }
+        console.log("Parsed data:", JSON.stringify(parsedData, null, 2));
+      } catch (parseError) {
+        console.error("Failed to parse OCR data:", parseError);
+        console.error("Raw OCR data was:", dataToSave);
+        throw new Error("Failed to parse receipt data");
+      }
+
+      // Ensure the data has the required structure
+      const transactionToSave = {
+        user_id: 1,
+        category_id: parsedData.category_id || null,
+        amount: parsedData.amount || 0,
+        description: parsedData.description || parsedData.merchant_name || "",
+        payment_method: parsedData.payment_method || "cash",
+        expense_date:
+          parsedData.expense_date ||
+          parsedData.date ||
+          new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        transaction_items:
+          parsedData.transaction_items || parsedData.items || [],
+      };
+
+      console.log(
+        "Transaction to save:",
+        JSON.stringify(transactionToSave, null, 2)
+      );
+
+      setSaveLoading(true);
+      await mutation.mutateAsync(transactionToSave);
+
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setScreen("main");
+        setUpdatedOCRResult(null);
+        setUserInput("");
+        setCapturedImage(null);
+        setSaveSuccess(false);
+      }, 1500);
+    } catch (error: any) {
+      console.error("=== SAVE TRANSACTION ERROR ===");
+      console.error("Error:", error);
+      console.error("Error message:", error?.message);
+
+      alert(
+        "Failed to save transaction: " + (error?.message || "Unknown error")
+      );
+    } finally {
+      setSaveLoading(false);
     }
 
     setSaveLoading(true);
@@ -602,17 +642,147 @@ Important rules:
     }
   };
 
-  // Add function to save from JSON review
+  // Save speech transaction with robust error handling (like OCR handleSaveTransaction)
+  export const handleSaveSpeechFromReview = async ({
+    processedSpeechData,
+    mutation,
+    setSaveLoading,
+    setSaveSuccess,
+    setShowSpeechJsonReview,
+    setIsSpeechInputOpen,
+    setProcessedSpeechData,
+    setSpeechTranscript,
+    resetTranscript,
+  }: any) => {
+    if (!processedSpeechData) return;
+
+    try {
+      console.log("=== SAVING SPEECH TRANSACTION ===");
+      console.log(
+        "Data to save:",
+        JSON.stringify(processedSpeechData, null, 2)
+      );
+
+      // Parse the data - it might be a string or already an object
+      let parsedData;
+      try {
+        if (typeof processedSpeechData === "string") {
+          const cleanedText = stripCodeFences(processedSpeechData);
+          console.log("Cleaned text:", cleanedText);
+          parsedData = JSON.parse(cleanedText);
+        } else {
+          parsedData = processedSpeechData;
+        }
+        console.log("Parsed data:", JSON.stringify(parsedData, null, 2));
+      } catch (parseError) {
+        console.error("Failed to parse speech data:", parseError);
+        console.error("Raw speech data was:", processedSpeechData);
+        throw new Error("Failed to parse expense data");
+      }
+
+      // Ensure the data has the required structure
+      const transactionToSave = {
+        user_id: 1,
+        category_id: parsedData.category_id || null,
+        amount: parsedData.amount || 0,
+        description: parsedData.description || "",
+        payment_method: parsedData.payment_method || "cash",
+        expense_date:
+          parsedData.expense_date ||
+          parsedData.date ||
+          new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        transaction_items:
+          parsedData.transaction_items || parsedData.items || [],
+      };
+
+      console.log(
+        "Transaction to save:",
+        JSON.stringify(transactionToSave, null, 2)
+      );
+
+      setSaveLoading(true);
+      await mutation.mutateAsync(transactionToSave);
+
+      setSaveSuccess(true);
+      alert("Expense saved successfully!");
+
+      setTimeout(() => {
+        setShowSpeechJsonReview(false);
+        setIsSpeechInputOpen(false);
+        setProcessedSpeechData(null);
+        setSpeechTranscript("");
+        resetTranscript();
+        setSaveSuccess(false);
+        window.location.reload();
+      }, 1500);
+    } catch (error: any) {
+      console.error("=== SAVE SPEECH TRANSACTION ERROR ===");
+      console.error("Error:", error);
+      console.error("Error message:", error?.message);
+
+      alert(
+        "Failed to save transaction: " + (error?.message || "Unknown error")
+      );
+    } finally {
+      setSaveLoading(false);
+    }
+  };
   const handleSaveManualFromReview = async () => {
     if (!processedManualData) return;
 
-    setSaveLoading(true);
+    try {
+      console.log("=== SAVING MANUAL TRANSACTION ===");
+      console.log(
+        "Data to save:",
+        JSON.stringify(processedManualData, null, 2)
+      );
 
-    mutation.mutate(processedManualData, {
-      onSuccess: () => {
-        setSaveSuccess(true);
-        setSaveLoading(false);
-        alert("Expense saved successfully!");
+      // Parse the data - it might be a string or already an object
+      let parsedData;
+      try {
+        if (typeof processedManualData === "string") {
+          const cleanedText = stripCodeFences(processedManualData);
+          console.log("Cleaned text:", cleanedText);
+          parsedData = JSON.parse(cleanedText);
+        } else {
+          parsedData = processedManualData;
+        }
+        console.log("Parsed data:", JSON.stringify(parsedData, null, 2));
+      } catch (parseError) {
+        console.error("Failed to parse manual data:", parseError);
+        console.error("Raw manual data was:", processedManualData);
+        throw new Error("Failed to parse expense data");
+      }
+
+      // Ensure the data has the required structure
+      const transactionToSave = {
+        user_id: 1,
+        category_id: parsedData.category_id || null,
+        amount: parsedData.amount || 0,
+        description: parsedData.description || "",
+        payment_method: parsedData.payment_method || "cash",
+        expense_date:
+          parsedData.expense_date ||
+          parsedData.date ||
+          new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        transaction_items:
+          parsedData.transaction_items || parsedData.items || [],
+      };
+
+      console.log(
+        "Transaction to save:",
+        JSON.stringify(transactionToSave, null, 2)
+      );
+
+      setSaveLoading(true);
+      await mutation.mutateAsync(transactionToSave);
+
+      setSaveSuccess(true);
+      alert("Expense saved successfully!");
+
+      setTimeout(() => {
         setShowManualJsonReview(false);
         setIsManualInputOpen(false);
         setProcessedManualData(null);
@@ -623,15 +793,20 @@ Important rules:
           payment_method: "cash",
           expense_date: new Date().toISOString().split("T")[0],
         });
-        // Refresh expenses list
+        setSaveSuccess(false);
         window.location.reload();
-      },
-      onError: (err: any) => {
-        console.error("Save error:", err);
-        alert("Failed to save expense: " + (err?.message || String(err)));
-        setSaveLoading(false);
-      },
-    });
+      }, 1500);
+    } catch (error: any) {
+      console.error("=== SAVE MANUAL TRANSACTION ERROR ===");
+      console.error("Error:", error);
+      console.error("Error message:", error?.message);
+
+      alert(
+        "Failed to save transaction: " + (error?.message || "Unknown error")
+      );
+    } finally {
+      setSaveLoading(false);
+    }
   };
 
   const handleChatSubmit = async () => {
