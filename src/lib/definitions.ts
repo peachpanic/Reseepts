@@ -9,17 +9,25 @@ export interface User {
   created_at: string;
 }
 
-export interface Expense {
+export interface Transaction {
   expense_id: number;
   user_id: number;
   category_id: number;
   amount: number;
   description: string;
   payment_method: string;
-  source: string;
-  emotion_tag: string;
   expense_date: Date;
   created_at: Date;
+  transaction_items: TransactionItem[];
+}
+
+export interface TransactionItem {
+  id: number;
+  expense_id: number;
+  item_name: string;
+  created_at: Date;
+  subcategory: string;
+  amount: number;
 }
 
 export interface Category {

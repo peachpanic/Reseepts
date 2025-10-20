@@ -1,17 +1,19 @@
-"use client";
-
 import ExpenseItem from "@/components/homepage/ExpenseItem";
-import Link from "next/link";
-import { useExpenses } from "@/hooks/useExpenses";
+import ExpenseListSkeleton from "@/components/homepage/Skeleton/ExpenseListSkeleton";
 import { ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Transaction } from "@/lib/definitions";
 
-export function TopSpendList() {
-  const { data: expenses, isLoading } = useExpenses("1");
+type TopSpendProps = {
+  transactions?: Transaction[]
+  isLoading: boolean
+}
+
+export function TopSpendList({ transactions, isLoading }: TopSpendProps) {
   if (isLoading) {
     return (
       <>
-        <div>hello</div>
+        <ExpenseListSkeleton count={10}/>
       </>
     );
   }
@@ -31,9 +33,13 @@ export function TopSpendList() {
           </Button>
         </span>
       </div>
-      <div className="mx-4">
-        {expenses?.map((expense) => (
-          <ExpenseItem key={expense.expense_id} expense={expense} />
+      <div className="mx-4 space-y-2">
+        {transactions?.map((expense, index) => (
+          <ExpenseItem
+            key={expense.expense_id}
+            expense={expense}
+            className={index % 2 === 0 ? "bg-gray-100" : "bg-white"}
+          />
         ))}
       </div>
     </>

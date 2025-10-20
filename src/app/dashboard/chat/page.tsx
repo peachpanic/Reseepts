@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { useOCR } from "@/hooks/useOCR";
 import { FileUploadInput } from "@/components/FileUploadInput";
@@ -86,12 +86,13 @@ function extractTextFromResponse(data: unknown): string {
 }
 
 export default function GeminiPage() {
-  const [imageRecognitionResponse, setImageRecognitionResponse] = useState<
+  const [_imageRecognitionResponse, setImageRecognitionResponse] = useState<
     string | null
   >(null);
-  const [imageRecognitionError, setImageRecognitionError] = useState<
+  const [_imageRecognitionError, setImageRecognitionError] = useState<
     string | null
   >(null);
+
   const {
     filename,
     loading: uploadLoading,
@@ -105,22 +106,43 @@ export default function GeminiPage() {
     performOCROnImage,
   } = useOCR();
 
-  const [manualFilename, setManualFilename] = useState("");
-
-  // Message content type for OpenRouter payload
-  type MessageContent =
-    | { type: "text"; text: string }
-    | { type: "image_url"; image_url: { url: string } };
-
-  // New: unified prompt + image UI state
-  const [prompt, setPrompt] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Add state for user input and updated OCR result
   const [userInput, setUserInput] = useState("");
   const [updatedOCRResult, setUpdatedOCRResult] = useState(null);
+  const [categories, setCategories] = useState<
+    Array<{ category_id: number; category_name: string }>
+  >([]);
+  const [categoryMapping, setCategoryMapping] = useState<
+    Record<string, number>
+  >({});
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch("/api/categories");
+        if (res.ok) {
+          const data = await res.json();
+          setCategories(data || []);
+          const mapping = data.reduce(
+            (
+              acc: Record<string, number>,
+              cat: { category_name: string; category_id: number }
+            ) => {
+              acc[cat.category_name] = cat.category_id;
+              return acc;
+            },
+            {}
+          );
+          setCategoryMapping(mapping);
+        }
+      } catch (err) {
+        console.error("Failed to fetch categories:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   useEffect(() => {
     const fetchImageRecognition = async () => {
@@ -157,7 +179,7 @@ export default function GeminiPage() {
 
   // Handles OCR
   const handleOCRSubmit = async () => {
-    const targetFilename = filename || manualFilename;
+    const targetFilename = filename;
     if (!targetFilename) return;
 
     setImageRecognitionError(null);
@@ -173,111 +195,55 @@ export default function GeminiPage() {
     }
   };
 
-  // Opens dialog for file picker
-  const handlePickImage = () => {
-    fileInputRef.current?.click();
-  };
-
-  // Handles file selection in local
-  const handleLocalFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImagePreviewUrl(URL.createObjectURL(file));
-    setManualFilename("");
-    await handleFileUpload(file);
-  };
-
-  // Removes selected image
-  const clearSelectedImage = () => {
-    setImagePreviewUrl(null);
-  };
-
-  // Submits both image and prompt to API
-  const handleUnifiedSubmit = async () => {
-    if (!prompt && !filename) return;
-
-    setChatLoading(true);
-    setImageRecognitionError(null);
-    setImageRecognitionResponse(null);
-
-    // Fallback prompt if only image is provided
-    const text = prompt || "What is in this image?";
-
-    // Helper to convert a Blob to a data URL (base64)
-    const blobToDataUrl = (blob: Blob) =>
-      new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
-
-    // Build image content as an embedded data URL so OpenRouter can read it
-    let imageContent: MessageContent[] = [];
-    if (filename) {
-      try {
-        const res = await fetch(`/images/${filename}`);
-        if (!res.ok) throw new Error(`Failed to load image (${res.status}`);
-        const blob = await res.blob();
-        const dataUrl = await blobToDataUrl(blob);
-        imageContent = [
-          {
-            type: "image_url",
-            image_url: {
-              // Use data URL so it's accessible to the provider (no need for a public HTTP URL)
-              url: dataUrl,
-            },
-          },
-        ];
-      } catch (e) {
-        setImageRecognitionError(
-          (e as Error).message || "Unable to load image for recognition."
-        );
-        setChatLoading(false);
-        return;
-      }
-    }
-
-    try {
-      const res = await fetch("/api/gemini", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: globalThis.JSON.stringify({
-          model: "google/gemini-2.0-flash-001",
-          messages: [
-            {
-              role: "user",
-              content: [{ type: "text", text }, ...imageContent],
-            },
-          ],
-        }),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(`errText || Request failed (${res.status}`);
-      }
-
-      const data = await res.json();
-      setImageRecognitionResponse(extractTextFromResponse(data));
-      setPrompt("");
-    } catch (err) {
-      setImageRecognitionError((err as Error).message);
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
-  // Ensure ocrResult is parsed as JSON
   const parsedOCRResult =
     typeof ocrResult === "string"
       ? globalThis.JSON.parse(ocrResult)
       : ocrResult;
 
-  // Function to send a chat completion request to the assistant to add items
-  // The assistant is expected to return the full updated OCR JSON (only JSON)
+  const handleSaveTransaction = async () => {
+    const dataToSave = updatedOCRResult ?? parsedOCRResult;
+
+    if (!dataToSave) {
+      alert("No transaction data to save. Perform OCR first.");
+      return;
+    }
+
+    setSaveLoading(true);
+    setSaveSuccess(false);
+    setImageRecognitionError(null);
+
+    try {
+      const response = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: globalThis.JSON.stringify(dataToSave),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save transaction");
+      }
+
+      const result = await response.json();
+      console.log("Transaction saved:", result);
+      console.log("Transaction items:", result.transaction?.transaction_item);
+
+      setSaveSuccess(true);
+      alert(
+        `Transaction saved successfully! Expense ID: ${result.transaction?.expense_id}`
+      );
+
+      // Update the OCR result with the saved transaction data
+      setUpdatedOCRResult(result.transaction);
+    } catch (err) {
+      console.error("Save error:", err);
+      setImageRecognitionError((err as Error).message);
+      alert("Failed to save transaction: " + (err as Error).message);
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
   const handleChatSubmit = async () => {
     if (!parsedOCRResult) {
       alert("No OCR result to augment. Perform OCR first.");
@@ -290,50 +256,37 @@ export default function GeminiPage() {
     setImageRecognitionError(null);
 
     try {
-      // Use the most recent result as the base (preserve prior assistant edits)
       const base = updatedOCRResult ?? parsedOCRResult;
 
-      const categoriesList = [
-        "Food",
-        "Travel",
-        "Office Supplies",
-        "Entertainment",
-        "Utilities",
-        "Healthcare",
-        "Housing/Rent",
-        "Mortgage",
-        "Transportation",
-        "Auto/Car Payment",
-        "Insurance",
-        "Personal Care",
-        "Clothing",
-        "Education",
-        "Debt Repayment",
-        "Savings & Investments",
-        "Gifts & Donations",
-        "Pets",
-        "Appliances",
-        "Other",
-      ];
+      const categoriesList = categories.map((cat) => cat.category_name);
 
       const systemInstruction = `You are an assistant that receives an existing expense JSON and a short user instruction.
 YOU MUST return ONLY a single valid JSON object (no markdown, no code fences, no explanation).
-The JSON must match the same schema. Numeric fields must be numbers (not strings).
+The JSON must match the database schema exactly. Numeric fields must be numbers (not strings).
+
+Database schema:
+- transactions table: expense_id, user_id, category_id, amount, description, payment_method, expense_date, created_at
+- transaction_item table: id, item_name, amount, subcategory, expense_id, created_at
+
+Available categories from database:
+${JSON.stringify(categories, null, 2)}
+
+Category ID mapping:
+${JSON.stringify(categoryMapping, null, 2)}
 
 Important rules:
-1) The 'category' field inside every line_items entry MUST be exactly one of: ${JSON.stringify(
+1) The 'subcategory' field inside every transaction_items entry MUST be exactly one of: ${JSON.stringify(
         categoriesList
       )}.
-2) NEVER return category:null. If you cannot determine a precise category, return "Other".
-3) If an item name clearly indicates food (apple, orange, banana, gatorade, juice, milk, bread, rice, etc.), set category to "Food".
-4) Provide explicit examples: e.g. "apple" -> "Food", "gatorade" -> "Food", "t-shirt" -> "Clothing", "push pins" -> "Office Supplies".
+2) The 'category_id' field MUST be the integer ID from the category mapping that best matches the overall expense type.
+3) NEVER return subcategory:null. If you cannot determine a precise subcategory, use the closest match from the available categories.
+4) Match category names EXACTLY as they appear in the database (case-sensitive).
 5) Output only the complete JSON object and nothing else.
-
-Example input/expectation:
-Input JSON: ${globalThis.JSON.stringify(base)}
-Instruction: Add: apple 2x 200
-
-Expected: a complete JSON object where the added or updated line_items have category "Food".`;
+6) **CRITICAL: After adding, removing, or modifying any transaction_items, you MUST recalculate the top-level "amount" field as the SUM of all transaction_items' amount values.**
+7) Example: If transaction_items are [{"amount": 100}, {"amount": 50}], then top-level "amount" must be 150.
+8) Do NOT add extra fields. Only use: item_name, amount, subcategory, expense_id, created_at for transaction_items.
+9) Keep user_id as 1 and maintain ISO 8601 timestamp format for created_at fields.
+10) When determining category_id, choose the most appropriate category from the mapping based on the expense description and items.`;
 
       const userMessage = `Current expense data:\n${globalThis.JSON.stringify(
         base,
@@ -364,18 +317,16 @@ Expected: a complete JSON object where the added or updated line_items have cate
       const data = await res.json();
       const assistantText = extractTextFromResponse(data);
 
-      // Try to parse assistantText as JSON — assistant should return a full JSON object
       let parsed;
       try {
         parsed = globalThis.JSON.parse(assistantText);
       } catch (err) {
-        // If parsing fails, show raw assistant text for debugging
+        console.error("JSON parse error: ", err);
         throw new Error(
           "Assistant returned non-JSON response: " + assistantText
         );
       }
 
-      // Trust the AI completely - no client-side merging
       setUpdatedOCRResult(parsed);
       setUserInput("");
     } catch (err) {
@@ -394,7 +345,6 @@ Expected: a complete JSON object where the added or updated line_items have cate
         margin: "0 auto",
       }}
     >
-      {/* OCR Section (left as a separate panel if you still want it) */}
       <section style={{ marginBottom: "30px" }}>
         <h2>OCR (Optical Character Recognition)</h2>
         <p style={{ color: "#666", fontSize: "14px" }}>
@@ -448,7 +398,7 @@ Expected: a complete JSON object where the added or updated line_items have cate
             <OCRButton
               onClick={handleOCRSubmit}
               loading={ocrLoading}
-              disabled={!filename && !manualFilename}
+              disabled={!filename}
               label={ocrLoading ? "Processing OCR..." : "Perform OCR"}
             />
             {filename ? (
@@ -470,7 +420,6 @@ Expected: a complete JSON object where the added or updated line_items have cate
           title="OCR Results"
         />
 
-        {/* New Section for Adding Items */}
         <div style={{ marginTop: "20px" }}>
           <h3>Chat to Augment OCR Result</h3>
           <p style={{ color: "#666", fontSize: 14 }}>
@@ -522,20 +471,56 @@ Expected: a complete JSON object where the added or updated line_items have cate
           </div>
         </div>
 
-        {/* Display Updated OCR Result */}
-        {updatedOCRResult && (
+        {(updatedOCRResult || parsedOCRResult) && (
           <div style={{ marginTop: "20px" }}>
-            <h3>Updated OCR Result</h3>
+            <h3>{updatedOCRResult ? "Updated OCR Result" : "OCR Result"}</h3>
             <pre
               style={{
                 background: "#f4f4f4",
                 padding: "10px",
                 borderRadius: "4px",
                 overflowX: "auto",
+                marginBottom: "10px",
               }}
             >
-              {globalThis.JSON.stringify(updatedOCRResult, null, 2)}
+              {globalThis.JSON.stringify(
+                updatedOCRResult ?? parsedOCRResult,
+                null,
+                2
+              )}
             </pre>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={handleSaveTransaction}
+                disabled={saveLoading}
+                style={{
+                  padding: "10px 20px",
+                  backgroundColor: saveSuccess ? "#10b981" : "#16a34a",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: saveLoading ? "wait" : "pointer",
+                  opacity: saveLoading ? 0.7 : 1,
+                }}
+              >
+                {saveLoading
+                  ? "Saving..."
+                  : saveSuccess
+                  ? "✓ Saved!"
+                  : "Save to Database"}
+              </button>
+              {saveSuccess && (
+                <span
+                  style={{
+                    color: "#10b981",
+                    alignSelf: "center",
+                    fontSize: 14,
+                  }}
+                >
+                  Transaction saved with expense_id!
+                </span>
+              )}
+            </div>
           </div>
         )}
       </section>

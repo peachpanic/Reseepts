@@ -1,9 +1,15 @@
-
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form } from "@/components/ui/form";
+import {
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/components/ui/form";
 
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -35,42 +41,44 @@ export function LoginForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="space-y-2">
-          <label htmlFor="email" className="text-sm font-medium text-gray-700">
-            Email
-          </label>
-          <Input
-            {...form.register("email")}
-            id="email"
-            type="email"
-            placeholder="your@email.com"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor="password" className="text-sm font-medium text-gray-700">
-            Password
-          </label>
-          <Input
-            {...form.register("password")}
-            id="password"
-            type="password"
-            placeholder="Enter your password"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <label className="flex items-center">
-            <input type="checkbox" className="mr-2 rounded" />
-            <span className="text-gray-600">Remember me</span>
-          </label>
-          <a href="#" className="text-blue-600 hover:text-blue-700 font-medium">
-            Forgot password?
-          </a>
-        </div>
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="sr-only">Email</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="Email"
+                  {...field}
+                  className="w-full px-4 py-3 rounded-lg bg-white text-black placeholder-gray-500 border border-gray-300 focus:ring-2 focus:ring-[#3E7C78] focus:border-[#3E7C78] transition-colors"
+                />
+              </FormControl>
+              <FormMessage className="text-red-500 text-sm mt-1" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="sr-only">Password</FormLabel>
+              <FormControl>
+                <Input
+                  type="password"
+                  placeholder="Password"
+                  {...field}
+                  className="w-full px-4 py-3 rounded-lg bg-white text-black placeholder-gray-500 border border-gray-300 focus:ring-2 focus:ring-[#3E7C78] focus:border-[#3E7C78] transition-colors"
+                />
+              </FormControl>
+              <FormMessage className="text-red-500 text-sm mt-1" />
+            </FormItem>
+          )}
+        />
         <Button
           type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-lg transition-colors"
+          className="w-full bg-[#3E7C78] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#2E5C58] transition-colors shadow-md"
         >
           Sign In
         </Button>
