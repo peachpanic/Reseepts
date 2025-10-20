@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import ExpenseItem from "@/components/expenses/ExpenseItem";
+import ExpenseItemSkeleton from "@/components/expenses/ExpenseItemSkeleton";
 import CategoryDialog from "@/components/CategoryDialog";
 import { useOCR } from "@/hooks/useOCR";
 import { useFileUpload } from "@/hooks/useFileUpload";
@@ -104,6 +105,7 @@ export default function ExpensePage() {
   const [expenses, setExpenses] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
   const [totalExpense, setTotalExpense] = useState<number>(0);
+  const [expensesLoading, setExpensesLoading] = useState(true);
 
   // File upload and OCR hooks
   const {
@@ -161,6 +163,7 @@ export default function ExpensePage() {
   // Fetch expenses on mount
   useEffect(() => {
     const fetchExpenses = async () => {
+      setExpensesLoading(true);
       try {
         const res = await fetch("/api/expenses?id=1");
         if (res.ok) {
@@ -179,6 +182,8 @@ export default function ExpensePage() {
         }
       } catch (err) {
         console.error("Failed to fetch expenses:", err);
+      } finally {
+        setExpensesLoading(false);
       }
     };
     fetchExpenses();
@@ -329,8 +334,7 @@ export default function ExpensePage() {
         try {
           const tx = (result as any)?.transaction ?? result;
           if (tx) setUpdatedOCRResult(tx);
-        } catch (e) {
-        }
+        } catch (e) {}
 
         setTimeout(() => {
           setScreen("main");
@@ -564,7 +568,16 @@ Important rules:
                   </button>
                 </div>
                 <div className="text-black">
-                  {(activeTab === "expenses" ? expenses : bills).length > 0 ? (
+                  {expensesLoading ? (
+                    // Show skeleton loaders while loading
+                    <>
+                      <ExpenseItemSkeleton />
+                      <ExpenseItemSkeleton />
+                      <ExpenseItemSkeleton />
+                      <ExpenseItemSkeleton />
+                    </>
+                  ) : (activeTab === "expenses" ? expenses : bills).length >
+                    0 ? (
                     (activeTab === "expenses" ? expenses : bills).map((e) => (
                       <ExpenseItem key={e.expense_id} item={e} />
                     ))

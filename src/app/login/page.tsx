@@ -7,15 +7,13 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 px-4">
       <div className="w-full max-w-md">
         {/* Card Container */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+        <div className="bg-white rounded-2xl md:shadow-xl p-8 border border-gray-100">
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Welcome Back
             </h1>
-            <p className="text-gray-600">
-              Sign in to continue to your account
-            </p>
+            <p className="text-gray-600">Sign in to continue to your account</p>
           </div>
 
           {/* Google Sign In */}
