@@ -54,7 +54,7 @@ export default function Homepage() {
             <h1 className="font-bold text-2xl mt-2 leading-tight">
               Good day,{" "}
               <span className="bg-gradient-to-r from-white to-teal-100 bg-clip-text text-transparent">
-                {session?.user?.name}
+                {session?.user?.name?.split(" ")[0]}!
               </span>
             </h1>
           </div>
